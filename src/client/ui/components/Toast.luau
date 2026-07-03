@@ -1,22 +1,30 @@
--- Candy Toast (Notification) Component
+-- Candy Toast (Notification) System
 local TweenService = game:GetService("TweenService")
 local Theme = require(script.Parent.Parent.theme.Theme)
 
-local ToastFactory = {}
+local Toast = {}
+local container = nil
 
-function ToastFactory.create(options)
-	local text = options.Text or "Notification"
-	local color = options.Color or Theme.Colors.Blue
-	local parent = options.Parent
+function Toast.init(parent)
+	container = parent
+end
 
+function Toast.show(text, notificationType)
+	if not container then return end
+	
+	local color = Theme.Colors.Info
+	if notificationType == "Success" then color = Theme.Colors.Success
+	elseif notificationType == "Error" then color = Theme.Colors.Error
+	elseif notificationType == "Warning" then color = Theme.Colors.Warning end
+	
 	local toast = Instance.new("Frame")
-	toast.Name = "Toast"
-	toast.Size = UDim2.new(0, 240, 0, 44)
-	toast.Position = UDim2.new(0.5, 0, 0, -60) -- Start off-screen
+	toast.Name = "ToastNotification"
+	toast.Size = UDim2.new(0, 300, 0, 50)
+	toast.Position = UDim2.new(0.5, 0, 0, -60)
 	toast.AnchorPoint = Vector2.new(0.5, 0)
 	toast.BackgroundColor3 = Theme.Colors.Background
 	toast.BorderSizePixel = 0
-	toast.Parent = parent
+	toast.Parent = container
 
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = Theme.Sizes.CornerButton
@@ -35,7 +43,8 @@ function ToastFactory.create(options)
 	label.Text = text
 	label.Font = Theme.Fonts.Main
 	label.TextColor3 = Theme.Colors.Text
-	label.TextScaled = true
+	label.TextSize = 18
+	label.TextWrapped = true
 	label.Parent = toast
 
 	local ts = Instance.new("UIStroke")
@@ -54,8 +63,12 @@ function ToastFactory.create(options)
 			toast:Destroy()
 		end)
 	end)
-
-	return toast
 end
 
-return ToastFactory
+-- Factory method for direct creation if needed
+function Toast.create(options)
+	Toast.show(options.Text or "Notification", options.Type or "Info")
+	return nil -- Toast manages its own lifecycle
+end
+
+return Toast

@@ -1,7 +1,5 @@
 -- Candy Capture Bar Overlay
 local TweenService = game:GetService("TweenService")
-local SoundService = game:GetService("SoundService")
-
 local Theme = require(script.Parent.Parent.theme.Theme)
 local ProgressBar = require(script.Parent.Parent.components.ProgressBar)
 
@@ -11,80 +9,72 @@ function CaptureBar.create(options)
 	local parent = options.Parent
 
 	local container = Instance.new("Frame")
-	container.Name = "CaptureOverlayFrame"
-	container.Size = UDim2.new(0, 320, 0, 60)
-	container.Position = UDim2.new(0.5, -160, 1, -150)
-	container.BackgroundColor3 = Theme.Colors.Panel
-	container.BackgroundTransparency = 0.2
-	container.BorderSizePixel = 0
+	container.Name = "CaptureOverlay"
+	container.Size = UDim2.new(0, 350, 0, 100)
+	container.Position = UDim2.new(0.5, 0, 0.2, 0)
+	container.AnchorPoint = Vector2.new(0.5, 0.5)
+	container.BackgroundTransparency = 1
 	container.Visible = false
 	container.Parent = parent
 
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = Theme.Sizes.CornerPanel
-	corner.Parent = container
-
-	local stroke = Instance.new("UIStroke")
-	stroke.Thickness = Theme.Sizes.StrokeThickness
-	stroke.Color = Theme.Colors.Stroke
-	stroke.Parent = container
-
-	-- Ghost Icon
-	local ghostIcon = Instance.new("TextLabel")
-	ghostIcon.Size = UDim2.new(0, 40, 0, 40)
-	ghostIcon.Position = UDim2.new(0, 10, 0.5, -20)
-	ghostIcon.BackgroundTransparency = 1
-	ghostIcon.Font = Theme.Fonts.Title
-	ghostIcon.TextSize = 24
-	ghostIcon.Text = "👻"
-	ghostIcon.Parent = container
-
-	-- Title
-	local title = Instance.new("TextLabel")
-	title.Size = UDim2.new(1, -60, 0, 20)
-	title.Position = UDim2.new(0, 50, 0, 6)
-	title.BackgroundTransparency = 1
-	title.Font = Theme.Fonts.Main
-	title.TextSize = 14
-	title.TextColor3 = Theme.Colors.Text
-	title.Text = "HOLD MOUSE BUTTON!"
-	title.Parent = container
+	local panel = Instance.new("Frame")
+	panel.Name = "Main"
+	panel.Size = UDim2.new(1, 0, 1, 0)
+	panel.BackgroundColor3 = Theme.Colors.Panel
+	panel.Parent = container
 	
-	local ts = Instance.new("UIStroke")
-	ts.Color = Theme.Colors.Stroke
-	ts.Thickness = 0.8
-	ts.Parent = title
+	Instance.new("UICorner", panel).CornerRadius = Theme.Sizes.CornerRadius
+	local stroke = Instance.new("UIStroke", panel)
+	stroke.Color = Theme.Colors.Stroke
+	stroke.Thickness = 3
 
-	-- Progress Bar
-	local pBar = ProgressBar.create({
-		Size = UDim2.new(1, -60, 0, 16),
-		Position = UDim2.new(0, 50, 1, -26),
-		Color = Theme.Colors.Green,
-		Parent = container
+	local ghostName = Instance.new("TextLabel")
+	ghostName.Name = "GhostName"
+	ghostName.Size = UDim2.new(1, 0, 0, 40)
+	ghostName.BackgroundTransparency = 1
+	ghostName.Text = "GHOST"
+	ghostName.Font = Theme.Fonts.Title
+	ghostName.TextColor3 = Theme.Colors.Text
+	ghostName.TextSize = 24
+	ghostName.Parent = panel
+
+	local bar = ProgressBar.create({
+		Parent = panel,
+		Size = UDim2.new(1, -40, 0, 30),
+		Position = UDim2.new(0.5, 0, 1, -35),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Color = Theme.Colors.Info
 	})
 
 	local api = {}
 	api.Instance = container
 
 	function api.Show(ghostInfo)
-		local rarity = ghostInfo.Rarity or "Common"
-		local rColor = Theme.RarityColors[rarity] or Theme.Colors.Green
-
-		pBar.SetColor(rColor)
-		pBar.SetProgress(0)
+		ghostName.Text = string.upper(ghostInfo.Name or "GHOST")
+		ghostName.TextColor3 = Theme.RarityColors[ghostInfo.Rarity] or Theme.Colors.Text
+		bar.SetProgress(0)
 		container.Visible = true
+		container.GroupTransparency = 1
+		TweenService:Create(container, TweenInfo.new(0.3), {GroupTransparency = 0}):Play()
 	end
 
-	function api.SetProgress(value)
-		pBar.SetProgress(value)
-	end
-
-	function api.Shake()
-		-- Shake logic implementation
+	function api.SetProgress(v)
+		bar.SetProgress(v)
 	end
 
 	function api.Hide()
-		container.Visible = false
+		local t = TweenService:Create(container, TweenInfo.new(0.2), {GroupTransparency = 1})
+		t:Play()
+		t.Completed:Connect(function() container.Visible = false end)
+	end
+
+	function api.Shake()
+		local origPos = container.Position
+		for i = 1, 4 do
+			container.Position = origPos + UDim2.new(0, math.random(-5, 5), 0, math.random(-5, 5))
+			task.wait(0.05)
+		end
+		container.Position = origPos
 	end
 
 	return api

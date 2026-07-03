@@ -1,7 +1,5 @@
 -- Candy Detector Widget
 local TweenService = game:GetService("TweenService")
-local SoundService = game:GetService("SoundService")
-
 local Theme = require(script.Parent.Parent.theme.Theme)
 
 local DetectorWidget = {}
@@ -11,123 +9,72 @@ function DetectorWidget.create(options)
 
 	local container = Instance.new("Frame")
 	container.Name = "DetectorWidget"
-	container.Size = UDim2.new(0, 160, 0, 75)
-	container.Position = options.Position or UDim2.new(0, 20, 0.4, -90)
+	container.Size = UDim2.new(0, 160, 0, 80)
+	container.Position = options.Position or UDim2.new(0, 20, 0.5, -241)
 	container.BackgroundColor3 = Theme.Colors.Panel
-	container.BackgroundTransparency = 0.2
-	container.BorderSizePixel = 0
+	container.BackgroundTransparency = 1 - (Theme.Colors.PanelOpacity or 0.8)
 	container.Parent = parent
 
 	local corner = Instance.new("UICorner")
-	corner.CornerRadius = Theme.Sizes.CornerPanel
+	corner.CornerRadius = Theme.Sizes.CornerRadius
 	corner.Parent = container
 
 	local stroke = Instance.new("UIStroke")
-	stroke.Thickness = Theme.Sizes.StrokeThickness
 	stroke.Color = Theme.Colors.Stroke
+	stroke.Thickness = 2
 	stroke.Parent = container
 
-	-- Radar Icon
-	local radarIcon = Instance.new("TextLabel")
-	radarIcon.Size = UDim2.new(0, 40, 0, 40)
-	radarIcon.Position = UDim2.new(0, 10, 0, 8)
-	radarIcon.BackgroundTransparency = 1
-	radarIcon.Font = Theme.Fonts.Title
-	radarIcon.TextSize = 24
-	radarIcon.Text = "📡"
-	radarIcon.Parent = container
+	local title = Instance.new("TextLabel")
+	title.Name = "Label"
+	title.Size = UDim2.new(1, 0, 0, 25)
+	title.BackgroundTransparency = 1
+	title.Text = "SIGNAL STRENGTH"
+	title.Font = Theme.Fonts.Bold
+	title.TextColor3 = Theme.Colors.TextSecondary
+	title.TextSize = 12
+	title.Parent = container
 
-	-- Signal Bars Container
-	local barsContainer = Instance.new("Frame")
-	barsContainer.Size = UDim2.new(0, 80, 0, 24)
-	barsContainer.Position = UDim2.new(0, 60, 0, 16)
-	barsContainer.BackgroundTransparency = 1
-	barsContainer.Parent = container
-
-	local barLayout = Instance.new("UIListLayout")
-	barLayout.FillDirection = Enum.FillDirection.Horizontal
-	barLayout.Padding = UDim.new(0, 4)
-	barLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	barLayout.Parent = barsContainer
-
-	local signalBars = {}
-	for i = 1, 5 do
-		local bar = Instance.new("Frame")
-		bar.Name = "Bar_" .. i
-		bar.Size = UDim2.new(0, 12, 1, 0)
-		bar.BackgroundColor3 = Theme.Colors.Background
-		bar.BorderSizePixel = 0
-		bar.LayoutOrder = i
-		bar.Parent = barsContainer
-
-		local barCorner = Instance.new("UICorner")
-		barCorner.CornerRadius = UDim.new(0, 4)
-		barCorner.Parent = bar
-		
-		table.insert(signalBars, bar)
-	end
-
-	-- Rarity / Status Label
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.new(1, -20, 0, 22)
-	label.Position = UDim2.new(0, 10, 1, -26)
-	label.BackgroundTransparency = 1
-	label.Font = Theme.Fonts.Main
-	label.TextSize = 12
-	label.TextColor3 = Theme.Colors.TextSecondary
-	label.Text = "SIGNAL: NONE"
-	label.Parent = container
+	local meter = Instance.new("Frame")
+	meter.Name = "Meter"
+	meter.Size = UDim2.new(1, -20, 0, 12)
+	meter.Position = UDim2.new(0.5, 0, 0, 40)
+	meter.AnchorPoint = Vector2.new(0.5, 0)
+	meter.BackgroundColor3 = Theme.Colors.Background
+	meter.Parent = container
 	
-	local ts = Instance.new("UIStroke")
-	ts.Color = Theme.Colors.Stroke
-	ts.Thickness = 0.8
-	ts.Parent = label
+	Instance.new("UICorner", meter).CornerRadius = UDim.new(1, 0)
 
-	-- State management
-	local currentProgress = 0
-	local isTicking = true
-	local lastTickTime = 0
+	local fill = Instance.new("Frame")
+	fill.Name = "Fill"
+	fill.Size = UDim2.new(0, 0, 1, 0)
+	fill.BackgroundColor3 = Theme.Colors.Info
+	fill.Parent = meter
+	
+	Instance.new("UICorner", fill).CornerRadius = UDim.new(1, 0)
 
-	task.spawn(function()
-		while isTicking do
-			if currentProgress > 0.05 then
-				local factor = currentProgress
-				local rate = 0.15 + (1 - factor) * 0.8
-
-				if tick() - lastTickTime >= rate then
-					lastTickTime = tick()
-					-- Sound trigger logic would go here
-				end
-			end
-			task.wait(0.05)
-		end
-	end)
+	local rarityLabel = Instance.new("TextLabel")
+	rarityLabel.Name = "RarityLabel"
+	rarityLabel.Size = UDim2.new(1, 0, 0, 20)
+	rarityLabel.Position = UDim2.new(0, 0, 1, -25)
+	rarityLabel.BackgroundTransparency = 1
+	rarityLabel.Text = "NONE"
+	rarityLabel.Font = Theme.Fonts.Main
+	rarityLabel.TextColor3 = Theme.Colors.Text
+	rarityLabel.TextSize = 16
+	rarityLabel.Parent = container
 
 	local api = {}
 	api.Instance = container
 
-	function api.SetSignal(progress)
-		currentProgress = math.clamp(progress, 0, 1)
-
-		if currentProgress <= 0.05 then
-			for _, bar in ipairs(signalBars) do
-				bar.BackgroundColor3 = Theme.Colors.Background
-			end
-			label.Text = "SIGNAL: NONE"
-			label.TextColor3 = Theme.Colors.TextSecondary
-		else
-			local litCount = math.ceil(currentProgress * 5)
-			for i = 1, 5 do
-				signalBars[i].BackgroundColor3 = (i <= litCount) and Theme.Colors.Blue or Theme.Colors.Background
-			end
-		end
+	function api.SetSignal(factor)
+		local targetSize = UDim2.new(math.clamp(factor, 0, 1), 0, 1, 0)
+		TweenService:Create(fill, TweenInfo.new(0.1), {Size = targetSize}):Play()
+		fill.BackgroundColor3 = Theme.Colors.Info:Lerp(Theme.Colors.Red, factor)
 	end
 
 	function api.SetRarity(rarity)
-		if currentProgress > 0.05 and rarity then
-			label.Text = "SIGNAL: " .. rarity:upper()
-			label.TextColor3 = Theme.RarityColors[rarity] or Theme.Colors.Text
-		end
+		rarityLabel.Text = string.upper(rarity)
+		rarityLabel.TextColor3 = Theme.RarityColors[rarity] or Theme.Colors.Text
 	end
 
 	return api
