@@ -27,7 +27,7 @@ function ButtonFactory.create(options)
 	shadowFrame.Parent = parent
 
 	local shadowCorner = Instance.new("UICorner")
-	shadowCorner.CornerRadius = Theme.Sizes.CornerRadius
+	shadowCorner.CornerRadius = options.CornerRadius or Theme.Sizes.CornerRadius
 	shadowCorner.Parent = shadowFrame
 
 	-- 2. Сама кнопка (Верхняя часть, которая нажимается)
@@ -46,7 +46,7 @@ function ButtonFactory.create(options)
 	button.Parent = shadowFrame
 
 	local buttonCorner = Instance.new("UICorner")
-	buttonCorner.CornerRadius = Theme.Sizes.CornerRadius
+	buttonCorner.CornerRadius = options.CornerRadius or Theme.Sizes.CornerRadius
 	buttonCorner.Parent = button
 
 	local stroke = Instance.new("UIStroke")

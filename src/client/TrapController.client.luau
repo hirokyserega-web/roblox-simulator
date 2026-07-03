@@ -125,8 +125,8 @@ local function onHeartbeat(dt: number)
 	captureProgress = captureProgress + dt / captureTime
 	
 	-- Визуализируем прогресс
-	if captureProgressBar then
-		captureProgressBar.SetProgress(captureProgress)
+	if _G.SetCaptureProgress then
+		_G.SetCaptureProgress(captureProgress)
 	end
 
 	-- Успешный захват

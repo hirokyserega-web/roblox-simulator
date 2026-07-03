@@ -34,8 +34,8 @@ local function init()
 		UIManager.ShowToast(text, type or "Info")
 	end
 
-	-- Загружаем и инициализируем все модули окон и эффектов
-	task.spawn(function()
+	-- Загружаем и инициализируем все модули окон и эффектов с помощью task.defer (для предотвращения циклических крашей при require)
+	task.defer(function()
 		require(script.Parent.windows.ShopWindow)
 		require(script.Parent.windows.InventoryWindow)
 		require(script.Parent.windows.SellPopup)

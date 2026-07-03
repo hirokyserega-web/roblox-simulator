@@ -33,62 +33,29 @@ local function createHUD()
 	screenGui = UIManager.getScreenGui()
 
 	-- ==========================================
-	-- ВЕРХНЯЯ ПАНЕЛЬ
+	-- НИЖНИЙ ЛЕВЫЙ УГОЛ (Балансы валют)
 	-- ==========================================
-	local topBar = Instance.new("Frame")
-	topBar.Name = "TopHUD"
-	topBar.Size = UDim2.new(1, 0, 0, 60)
-	topBar.Position = UDim2.new(0, 0, 0, 10)
-	topBar.BackgroundTransparency = 1
-	topBar.Parent = screenGui
-
-	-- Фишка монет
 	moneyChip = CurrencyChip.create({
 		CurrencyType = "Money",
 		Size = UDim2.new(0, 150, 0, 40),
-		Position = UDim2.new(0, 20, 0, 10),
-		Parent = topBar
+		Position = UDim2.new(0, 20, 1, -55),
+		Parent = screenGui
 	})
 
-	-- Фишка кристаллов
 	crystalChip = CurrencyChip.create({
 		CurrencyType = "Crystals",
 		Size = UDim2.new(0, 130, 0, 40),
-		Position = UDim2.new(0, 180, 0, 10),
-		Parent = topBar
-	})
-
-	-- Кнопка Rebirth
-	local rebirthBtn = Button.create({
-		Text = "⚡ REBIRTH",
-		Color = Theme.Colors.Accent,
-		Size = UDim2.new(0, 110, 0, 40),
-		Position = UDim2.new(1, -210, 0, 14),
-		Parent = topBar,
-		OnClick = function()
-			UIManager.openWindow("Rebirth")
-		end
-	})
-
-	-- Кнопка Настроек ⚙️
-	local settingsBtn = Button.create({
-		Text = "⚙️",
-		Color = Theme.Colors.BackgroundSecondary,
-		Size = UDim2.new(0, 40, 0, 40),
-		Position = UDim2.new(1, -70, 0, 14),
-		TextSize = 18,
-		Parent = topBar,
-		OnClick = function()
-			UIManager.openWindow("Settings")
-		end
+		Position = UDim2.new(0, 175, 1, -55),
+		Parent = screenGui
 	})
 
 	-- ==========================================
-	-- ВИДЖЕТЫ
+	-- ВИДЖЕТЫ (Левая и Правая стороны)
 	-- ==========================================
+	-- Детектор расположен вертикально прямо НАД док-панелью кнопок
 	detector = DetectorWidget.create({
 		Parent = screenGui,
-		Position = UDim2.new(0, 20, 0.4, -90)
+		Position = UDim2.new(0, 20, 0.5, -205)
 	})
 
 	bag = BagWidget.create({
@@ -107,29 +74,31 @@ local function createHUD()
 	_G.ShakeCapture = function() captureBar.Shake() end
 
 	-- ==========================================
-	-- НИЖНЯЯ ПАНЕЛЬ DOCK (6 КНОПОК)
+	-- СЛЕВА ПО ЦЕНТРУ: DOCK (2 КОЛОНКИ, КРУПНЫЕ КРУГЛЫЕ КНОПКИ)
 	-- ==========================================
 	local dock = Instance.new("Frame")
 	dock.Name = "Dock"
-	dock.Size = UDim2.new(0, 640, 0, 60)
-	dock.Position = UDim2.new(0.5, -320, 1, -80)
+	dock.Size = UDim2.new(0, 118, 0, 246)
+	dock.Position = UDim2.new(0, 20, 0.5, -123)
 	dock.BackgroundTransparency = 1
 	dock.Parent = screenGui
 
-	local dockLayout = Instance.new("UIListLayout")
-	dockLayout.FillDirection = Enum.FillDirection.Horizontal
-	dockLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-	dockLayout.Padding = UDim.new(0, 10)
-	dockLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-	dockLayout.Parent = dock
+	local gridLayout = Instance.new("UIGridLayout")
+	gridLayout.CellSize = UDim2.new(0, 54, 0, 54)
+	gridLayout.CellPadding = UDim2.new(0, 10, 0, 10)
+	gridLayout.FillDirectionMaxCells = 2
+	gridLayout.StartCorner = Enum.StartCorner.TopLeft
+	gridLayout.Parent = dock
 
 	local dockButtons = {
-		{ Name = "Shop", Text = "🛒 Магазин", Color = Theme.Colors.Accent },
-		{ Name = "Inventory", Text = "🎒 Рюкзак", Color = Theme.Colors.Accent },
-		{ Name = "Pets", Text = "👾 Питомцы", Color = Theme.Colors.Accent },
-		{ Name = "Leaderboard", Text = "🏆 Топ", Color = Theme.Colors.Accent },
-		{ Name = "Teleport", Text = "🗺️ Телепорт", Color = Theme.Colors.Accent },
-		{ Name = "Rewards", Text = "🎁 Награды", Color = Theme.Colors.Warning }
+		{ Name = "Shop", Text = "🛒", Color = Theme.Colors.Accent },
+		{ Name = "Inventory", Text = "🎒", Color = Theme.Colors.Accent },
+		{ Name = "Pets", Text = "👾", Color = Theme.Colors.Accent },
+		{ Name = "Leaderboard", Text = "🏆", Color = Theme.Colors.Accent },
+		{ Name = "Teleport", Text = "🗺️", Color = Theme.Colors.Accent },
+		{ Name = "Rewards", Text = "🎁", Color = Theme.Colors.Warning },
+		{ Name = "Rebirth", Text = "⚡", Color = Theme.Colors.Accent },
+		{ Name = "Settings", Text = "⚙️", Color = Theme.Colors.BackgroundSecondary }
 	}
 
 	for _, item in ipairs(dockButtons) do
