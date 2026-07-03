@@ -1,14 +1,12 @@
--- Модуль для управления сетевыми событиями (RemoteEvents и RemoteFunctions)
--- Избавляет от необходимости вручную создавать объекты в Roblox Studio.
-
+-- Модуль Remotes для централизованного управления сетевыми событиями
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
-local NetworkEvents = {}
-local folderName = "NetworkEvents"
+local Remotes = {}
+local folderName = "Remotes"
 
--- Получить или создать папку для сетевых событий
-local function getNetworkFolder(): Folder
+-- Получить или создать папку Remotes
+local function getRemotesFolder(): Folder
 	local folder = ReplicatedStorage:FindFirstChild(folderName)
 	if not folder then
 		if RunService:IsServer() then
@@ -18,16 +16,16 @@ local function getNetworkFolder(): Folder
 		else
 			folder = ReplicatedStorage:WaitForChild(folderName, 10)
 			if not folder then
-				error("Клиент не дождался создания папки NetworkEvents в ReplicatedStorage!")
+				error("Клиент не дождался создания папки Remotes в ReplicatedStorage!")
 			end
 		end
 	end
 	return folder
 end
 
--- Получить RemoteEvent (создает на сервере, ждет на клиенте)
-function NetworkEvents.getEvent(name: string): RemoteEvent
-	local folder = getNetworkFolder()
+-- Получить или создать RemoteEvent
+function Remotes.getEvent(name: string): RemoteEvent
+	local folder = getRemotesFolder()
 	local event = folder:FindFirstChild(name)
 	
 	if not event then
@@ -46,9 +44,9 @@ function NetworkEvents.getEvent(name: string): RemoteEvent
 	return event
 end
 
--- Получить RemoteFunction (создает на сервере, ждет на клиенте)
-function NetworkEvents.getFunction(name: string): RemoteFunction
-	local folder = getNetworkFolder()
+-- Получить или создать RemoteFunction
+function Remotes.getFunction(name: string): RemoteFunction
+	local folder = getRemotesFolder()
 	local func = folder:FindFirstChild(name)
 	
 	if not func then
@@ -67,4 +65,4 @@ function NetworkEvents.getFunction(name: string): RemoteFunction
 	return func
 end
 
-return NetworkEvents
+return Remotes
