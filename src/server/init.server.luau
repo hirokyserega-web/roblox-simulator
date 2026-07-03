@@ -11,6 +11,7 @@ local InventoryService = require(ServerScriptService.Server.InventoryService)
 local CaptureService = require(ServerScriptService.Server.CaptureService)
 local CurrencyService = require(ServerScriptService.Server.CurrencyService)
 local SellService = require(ServerScriptService.Server.SellService)
+local UpgradeService = require(ServerScriptService.Server.UpgradeService)
 
 print("Server started")
 
@@ -53,8 +54,9 @@ end
 local function init()
 	local spawnZone = getOrCreateSpawnZone()
 	
-	-- Инициализация игровой экономики и рынка
+	-- Инициализация игровой экономики, рынка и улучшений
 	SellService.init()
+	UpgradeService.init()
 	
 	-- Запуск спавнера
 	GhostSpawner.start(spawnZone)
@@ -65,6 +67,8 @@ local function init()
 	-- Настройка игрока при входе
 	local function onPlayerAdded(player: Player)
 		CurrencyService.setupPlayer(player)
+		UpgradeService.setupPlayer(player)
+		
 		-- Синхронизируем пустой стартовый инвентарь
 		local inventoryUpdateEvent = Remotes.getEvent("InventoryUpdate")
 		inventoryUpdateEvent:FireClient(player, InventoryService.getInventory(player))
@@ -79,6 +83,7 @@ local function init()
 	Players.PlayerRemoving:Connect(function(player)
 		InventoryService.removePlayer(player)
 		CurrencyService.removePlayer(player)
+		UpgradeService.removePlayer(player)
 	end)
 end
 

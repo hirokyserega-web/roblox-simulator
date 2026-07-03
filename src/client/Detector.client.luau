@@ -5,6 +5,7 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local GameConfig = require(ReplicatedStorage.Shared.config.GameConfig)
+local UpgradeConfig = require(ReplicatedStorage.Shared.config.UpgradeConfig)
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -119,10 +120,13 @@ local function updateDetector()
 		end
 	end
 
-	-- Рассчитываем силу сигнала
+	-- Рассчитываем силу сигнала на основе уровня апгрейда
+	local level = player:GetAttribute("DetectorRadiusLvl") or 1
+	local detectorRadius = UpgradeConfig.DetectorRadius.Levels[level].Value
+
 	local signalPercent = 0
-	if nearestGhost and minDistance <= GameConfig.DetectorRadius then
-		signalPercent = (1 - (minDistance / GameConfig.DetectorRadius)) * 100
+	if nearestGhost and minDistance <= detectorRadius then
+		signalPercent = (1 - (minDistance / detectorRadius)) * 100
 	end
 
 	-- Обновляем UI

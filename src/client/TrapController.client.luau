@@ -6,6 +6,7 @@ local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
 local GameConfig = require(ReplicatedStorage.Shared.config.GameConfig)
+local UpgradeConfig = require(ReplicatedStorage.Shared.config.UpgradeConfig)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 
 local player = Players.LocalPlayer
@@ -148,8 +149,12 @@ local function onHeartbeat(dt: number)
 		return
 	end
 
+	-- Рассчитываем скорость захвата на основе уровня улучшения
+	local level = player:GetAttribute("CaptureSpeedLvl") or 1
+	local captureTime = UpgradeConfig.CaptureSpeed.Levels[level].Value
+
 	-- Рассчитываем прогресс захвата
-	captureProgress = captureProgress + dt / GameConfig.CaptureTime
+	captureProgress = captureProgress + dt / captureTime
 	
 	-- Визуализируем прогресс
 	if currentProgressBarGui then

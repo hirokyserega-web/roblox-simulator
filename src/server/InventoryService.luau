@@ -47,6 +47,12 @@ function InventoryService.getGhostsCount(player: Player): number
 	return #inv.Ghosts
 end
 
+-- Установить максимальную вместимость рюкзака
+function InventoryService.setMaxCapacity(player: Player, capacity: number)
+	local inv = InventoryService.getInventory(player)
+	inv.MaxCapacity = capacity
+end
+
 -- Очистка памяти при выходе игрока
 function InventoryService.removePlayer(player: Player)
 	inventories[player.UserId] = nil
