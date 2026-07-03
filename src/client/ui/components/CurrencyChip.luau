@@ -1,180 +1,81 @@
--- Компонент значка валюты (CurrencyChip) с анимациями
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
-
+-- Candy Currency Chip Component
 local Theme = require(script.Parent.Parent.theme.Theme)
 
-local CurrencyChipFactory = {}
+local ChipFactory = {}
 
-function CurrencyChipFactory.create(options)
-	local size = options.Size or UDim2.new(0, 140, 0, 36)
+function ChipFactory.create(options)
+	local currencyType = options.CurrencyType or "Money"
+	local color = options.Color or Theme.Colors.Green
+	local size = options.Size or UDim2.new(0, 150, 0, 40)
 	local position = options.Position or UDim2.new(0, 0, 0, 0)
-	local currencyType = options.CurrencyType or "Money" -- "Money" или "Crystals"
 	local parent = options.Parent
 
-	-- 1. Корпус фишки (Пилюля)
-	local container = Instance.new("Frame")
-	container.Name = "CurrencyChip_" .. currencyType
-	container.Size = size
-	container.Position = position
-	container.BackgroundColor3 = Theme.Colors.BackgroundSecondary
-	container.BackgroundTransparency = 0.2
-	container.BorderSizePixel = 0
-	container.Parent = parent
+	-- Icons map based on CurrencyType (Placeholders)
+	local icons = {
+		Money = "rbxassetid://15264875322", -- Replace with real asset ID
+		Crystals = "rbxassetid://15264875154",
+	}
+	
+	local icon = icons[currencyType] or ""
 
-	local containerCorner = Instance.new("UICorner")
-	containerCorner.CornerRadius = UDim.new(1, 0) -- Полное скругление
-	containerCorner.Parent = container
+	local chip = Instance.new("Frame")
+	chip.Name = "CurrencyChip_" .. currencyType
+	chip.Size = size
+	chip.Position = position
+	chip.BackgroundColor3 = Theme.Colors.Background
+	chip.BorderSizePixel = 0
+	chip.Parent = parent
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = Theme.Sizes.CornerPill
+	corner.Parent = chip
 
 	local stroke = Instance.new("UIStroke")
-	stroke.Thickness = Theme.Sizes.BorderWidth
 	stroke.Color = Theme.Colors.Stroke
-	stroke.Parent = container
+	stroke.Thickness = Theme.Sizes.StrokeThickness
+	stroke.Parent = chip
 
-	-- 2. Иконка валюты
-	local icon = Instance.new("TextLabel")
-	icon.Name = "Icon"
-	icon.Size = UDim2.new(0, 30, 0, 30)
-	icon.Position = UDim2.new(0, 4, 0.5, -15)
-	icon.BackgroundTransparency = 1
-	icon.Font = Theme.Fonts.Title
-	icon.TextSize = 18
-	icon.Text = (currencyType == "Money") and "💵" or "💎"
-	icon.Parent = container
+	-- Icon
+	local iconFrame = Instance.new("ImageLabel")
+	iconFrame.Name = "Icon"
+	iconFrame.Size = UDim2.new(0, 28, 0, 28)
+	iconFrame.Position = UDim2.new(0, 6, 0.5, 0)
+	iconFrame.AnchorPoint = Vector2.new(0, 0.5)
+	iconFrame.BackgroundTransparency = 1
+	iconFrame.Image = icon
+	iconFrame.Parent = chip
 
-	-- 3. Текст баланса
-	local label = Instance.new("TextLabel")
-	label.Name = "BalanceLabel"
-	label.Size = UDim2.new(1, -44, 1, 0)
-	label.Position = UDim2.new(0, 36, 0, 0)
-	label.BackgroundTransparency = 1
-	label.Font = Theme.Fonts.Bold
-	label.TextSize = 16
-	label.TextColor3 = (currencyType == "Money") and Theme.Colors.Success or Theme.Colors.Neon
-	label.TextXAlignment = Enum.TextXAlignment.Left
-	label.Text = "0"
-	label.TextStrokeTransparency = 0.5
-	label.TextStrokeColor3 = Theme.Colors.Stroke
-	label.Parent = container
+	-- Text Label
+	local textLabel = Instance.new("TextLabel")
+	textLabel.Name = "Value"
+	textLabel.Size = UDim2.new(1, -45, 1, 0)
+	textLabel.Position = UDim2.new(0, 40, 0, 0)
+	textLabel.BackgroundTransparency = 1
+	textLabel.Text = "0"
+	textLabel.Font = Theme.Fonts.Main
+	textLabel.TextColor3 = Theme.Colors.Text
+	textLabel.TextXAlignment = Enum.TextXAlignment.Left
+	textLabel.TextScaled = true
+	textLabel.Parent = chip
 
-	-- Состояние баланса
-	local currentValue = 0
+	local ts = Instance.new("UIStroke")
+	ts.Color = Theme.Colors.Stroke
+	ts.Thickness = 1.2
+	ts.Parent = textLabel
+	
+	local pad = Instance.new("UIPadding")
+	pad.PaddingTop = UDim.new(0, 6)
+	pad.PaddingBottom = UDim.new(0, 6)
+	pad.Parent = textLabel
 
-	-- Вспомогательная функция форматирования чисел
-	local function formatNumber(value: number): string
-		local formatted = tostring(value)
-		while true do  
-			local k
-			formatted, k = string.gsub(formatted, "^(-?%d+)(%d%d%d)", '%1,%2')
-			if k == 0 then
-				break
-			end
-		end
-		return formatted
-	end
-
-	-- API управления
 	local api = {}
-	api.Instance = container
+	api.Instance = chip
 
-	-- Плавное прокручивание счета (Count-up animation) с улучшенными анимациями
-	function api.SetValue(newValue: number)
-		local diff = newValue - currentValue
-		if diff == 0 then return end
-
-		-- Если баланс изменился, рисуем эффект "+N" или "-N"
-		if currentValue > 0 then
-			task.spawn(function()
-				local deltaLabel = Instance.new("TextLabel")
-				deltaLabel.Name = "DeltaLabel"
-				deltaLabel.Size = UDim2.new(0, 100, 0, 20)
-				deltaLabel.Position = UDim2.new(0.5, -50, 0, -25)
-				deltaLabel.BackgroundTransparency = 1
-				deltaLabel.Font = Theme.Fonts.Title
-				deltaLabel.TextSize = 18
-				deltaLabel.TextStrokeTransparency = 0.3
-				deltaLabel.TextStrokeColor3 = Theme.Colors.Stroke
-				
-				if diff > 0 then
-					deltaLabel.TextColor3 = (currencyType == "Money") and Theme.Colors.Success or Theme.Colors.Neon
-					deltaLabel.Text = "+" .. formatNumber(diff)
-				else
-					deltaLabel.TextColor3 = Theme.Colors.Error or Color3.fromRGB(255, 75, 75)
-					deltaLabel.Text = "-" .. formatNumber(math.abs(diff))
-				end
-				
-				deltaLabel.Parent = container
-
-				-- Анимация взлета и растворения дельты
-				local upTween = TweenService:Create(deltaLabel, TweenInfo.new(1.0, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-					Position = UDim2.new(0.5, -50, 0, -55),
-					TextTransparency = 1,
-					TextStrokeTransparency = 1
-				})
-				upTween:Play()
-				upTween.Completed:Connect(function()
-					deltaLabel:Destroy()
-				end)
-
-				-- Анимация самого контейнера (фишки)
-				if diff < 0 then
-					-- Эффект тряски при покупке (уменьшении баланса)
-					local originalPos = container.Position
-					task.spawn(function()
-						for i = 1, 6 do
-							local offset = (i % 2 == 0) and 3 or -3
-							container.Position = originalPos + UDim2.new(0, offset, 0, 0)
-							task.wait(0.04)
-						end
-						container.Position = originalPos
-					end)
-				else
-					-- Эффект пульсации при продаже (увеличении баланса)
-					local originalSize = container.Size
-					local originalPos = container.Position
-					local bounceInfo = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, true)
-					local bounceTween = TweenService:Create(container, bounceInfo, {
-						Size = UDim2.new(originalSize.X.Scale, originalSize.X.Offset + 12, originalSize.Y.Scale, originalSize.Y.Offset + 6),
-						Position = originalPos + UDim2.new(0, -6, 0, -3)
-					})
-					bounceTween:Play()
-				end
-			end)
-		end
-
-		-- Анимация накрутки цифр вверх/вниз
-		local duration = 0.5
-		local startTime = tick()
-		local startVal = currentValue
-		currentValue = newValue
-
-		task.spawn(function()
-			while tick() - startTime < duration do
-				local elapsed = tick() - startTime
-				local progress = math.clamp(elapsed / duration, 0, 1)
-				local lerpVal = math.floor(startVal + (newValue - startVal) * progress)
-				
-				label.Text = formatNumber(lerpVal)
-				
-				-- Эффект подпрыгивания цифр (пульсация масштаба)
-				if progress < 0.5 then
-					label.TextSize = 17
-				else
-					label.TextSize = 16
-				end
-				
-				task.wait()
-			end
-			label.Text = formatNumber(newValue)
-			label.TextSize = 16
-		end)
-	end
-
-	function api.Destroy()
-		container:Destroy()
+	function api.SetValue(val)
+		textLabel.Text = tostring(val)
 	end
 
 	return api
 end
 
-return CurrencyChipFactory
+return ChipFactory

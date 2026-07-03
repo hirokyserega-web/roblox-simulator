@@ -1,80 +1,58 @@
--- Компонент плавного прогресс-бара (ProgressBar) в стиле Roblox-симулятора
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+-- Candy Progress Bar Component
 local TweenService = game:GetService("TweenService")
-
 local Theme = require(script.Parent.Parent.theme.Theme)
 
-local ProgressBarFactory = {}
+local ProgressFactory = {}
 
-function ProgressBarFactory.create(options)
-	local size = options.Size or UDim2.new(1, 0, 0, 16)
+function ProgressFactory.create(options)
+	local color = options.Color or options.FillColor or Theme.Colors.Blue
+	local size = options.Size or UDim2.new(1, 0, 0, 24)
 	local position = options.Position or UDim2.new(0, 0, 0, 0)
-	local fillColor = options.FillColor or Theme.Colors.Success
 	local parent = options.Parent
 
-	-- 1. Фоновая часть бара
-	local bg = Instance.new("Frame")
-	bg.Name = "ProgressBar_Background"
-	bg.Size = size
-	bg.Position = position
-	bg.BackgroundColor3 = Theme.Colors.BackgroundSecondary
-	bg.BackgroundTransparency = 0.4
-	bg.BorderSizePixel = 0
-	bg.Parent = parent
+	local container = Instance.new("Frame")
+	container.Name = "ProgressBar"
+	container.Size = size
+	container.Position = position
+	container.BackgroundColor3 = Theme.Colors.Background
+	container.BorderSizePixel = 0
+	container.Parent = parent
 
-	local bgCorner = Instance.new("UICorner")
-	bgCorner.CornerRadius = Theme.Sizes.CornerRadius
-	bgCorner.Parent = bg
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = Theme.Sizes.CornerButton
+	corner.Parent = container
 
-	local bgStroke = Instance.new("UIStroke")
-	bgStroke.Thickness = Theme.Sizes.BorderWidth - 1
-	bgStroke.Color = Theme.Colors.Stroke
-	bgStroke.Parent = bg
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 1
+	stroke.Color = Theme.Colors.Stroke
+	stroke.Parent = container
 
-	-- 2. Заполняющая часть (Fill)
 	local fill = Instance.new("Frame")
 	fill.Name = "Fill"
 	fill.Size = UDim2.new(0, 0, 1, 0)
-	fill.BackgroundColor3 = fillColor
+	fill.BackgroundColor3 = color
 	fill.BorderSizePixel = 0
-	fill.Parent = bg
+	fill.Parent = container
 
 	local fillCorner = Instance.new("UICorner")
-	fillCorner.CornerRadius = Theme.Sizes.CornerRadius
+	fillCorner.CornerRadius = Theme.Sizes.CornerButton
 	fillCorner.Parent = fill
 
-	-- Плавный градиент для объема заливки
-	local fillGradient = Instance.new("UIGradient")
-	fillGradient.Color = ColorSequence.new({
-		ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
-		ColorSequenceKeypoint.new(1, Color3.fromRGB(220, 220, 220))
-	})
-	fillGradient.Rotation = 90
-	fillGradient.Parent = fill
-
-	-- API управления
 	local api = {}
-	api.Instance = bg
+	api.Instance = container
 
-	-- Установка уровня прогресса (от 0 до 1)
-	function api.SetProgress(progress: number)
-		local clampedProgress = math.clamp(progress, 0, 1)
-		
-		-- Анимируем изменение шкалы заполнения
-		TweenService:Create(fill, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-			Size = UDim2.new(clampedProgress, 0, 1, 0)
+	function api.SetProgress(value)
+		value = math.clamp(value, 0, 1)
+		TweenService:Create(fill, TweenInfo.new(0.3), {
+			Size = UDim2.new(value, 0, 1, 0)
 		}):Play()
 	end
 
-	function api.SetColor(color: Color3)
-		fill.BackgroundColor3 = color
-	end
-
-	function api.Destroy()
-		bg:Destroy()
+	function api.SetColor(newColor)
+		fill.BackgroundColor3 = newColor
 	end
 
 	return api
 end
 
-return ProgressBarFactory
+return ProgressFactory

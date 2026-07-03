@@ -1,4 +1,4 @@
--- Виджет детектора сигналов призраков (DetectorWidget)
+-- Candy Detector Widget
 local TweenService = game:GetService("TweenService")
 local SoundService = game:GetService("SoundService")
 
@@ -9,39 +9,38 @@ local DetectorWidget = {}
 function DetectorWidget.create(options)
 	local parent = options.Parent
 
-	-- Контейнер
 	local container = Instance.new("Frame")
 	container.Name = "DetectorWidget"
-	container.Size = UDim2.new(0, 150, 0, 70)
+	container.Size = UDim2.new(0, 160, 0, 75)
 	container.Position = options.Position or UDim2.new(0, 20, 0.4, -90)
-	container.BackgroundColor3 = Theme.Colors.Background
+	container.BackgroundColor3 = Theme.Colors.Panel
 	container.BackgroundTransparency = 0.2
 	container.BorderSizePixel = 0
 	container.Parent = parent
 
 	local corner = Instance.new("UICorner")
-	corner.CornerRadius = Theme.Sizes.CornerRadius
+	corner.CornerRadius = Theme.Sizes.CornerPanel
 	corner.Parent = container
 
 	local stroke = Instance.new("UIStroke")
-	stroke.Thickness = Theme.Sizes.BorderWidth
+	stroke.Thickness = Theme.Sizes.StrokeThickness
 	stroke.Color = Theme.Colors.Stroke
 	stroke.Parent = container
 
-	-- Иконка радара
+	-- Radar Icon
 	local radarIcon = Instance.new("TextLabel")
 	radarIcon.Size = UDim2.new(0, 40, 0, 40)
-	radarIcon.Position = UDim2.new(0, 8, 0, 8)
+	radarIcon.Position = UDim2.new(0, 10, 0, 8)
 	radarIcon.BackgroundTransparency = 1
 	radarIcon.Font = Theme.Fonts.Title
-	radarIcon.TextSize = 22
+	radarIcon.TextSize = 24
 	radarIcon.Text = "📡"
 	radarIcon.Parent = container
 
-	-- Шкала сигнала (5 полосок)
+	-- Signal Bars Container
 	local barsContainer = Instance.new("Frame")
 	barsContainer.Size = UDim2.new(0, 80, 0, 24)
-	barsContainer.Position = UDim2.new(0, 55, 0, 16)
+	barsContainer.Position = UDim2.new(0, 60, 0, 16)
 	barsContainer.BackgroundTransparency = 1
 	barsContainer.Parent = container
 
@@ -55,64 +54,49 @@ function DetectorWidget.create(options)
 	for i = 1, 5 do
 		local bar = Instance.new("Frame")
 		bar.Name = "Bar_" .. i
-		bar.Size = UDim2.new(0, 11, 1, 0)
-		bar.BackgroundColor3 = Theme.Colors.BackgroundSecondary
+		bar.Size = UDim2.new(0, 12, 1, 0)
+		bar.BackgroundColor3 = Theme.Colors.Background
 		bar.BorderSizePixel = 0
 		bar.LayoutOrder = i
 		bar.Parent = barsContainer
 
 		local barCorner = Instance.new("UICorner")
-		barCorner.CornerRadius = UDim.new(0, 3)
+		barCorner.CornerRadius = UDim.new(0, 4)
 		barCorner.Parent = bar
-
+		
 		table.insert(signalBars, bar)
 	end
 
-	-- Подпись редкости
+	-- Rarity / Status Label
 	local label = Instance.new("TextLabel")
-	label.Size = UDim2.new(1, -16, 0, 20)
-	label.Position = UDim2.new(0, 8, 1, -22)
+	label.Size = UDim2.new(1, -20, 0, 22)
+	label.Position = UDim2.new(0, 10, 1, -26)
 	label.BackgroundTransparency = 1
-	label.Font = Theme.Fonts.Body
-	label.TextSize = 10
+	label.Font = Theme.Fonts.Main
+	label.TextSize = 12
 	label.TextColor3 = Theme.Colors.TextSecondary
-	label.Text = "СИГНАЛ: ОТСУТСТВУЕТ"
+	label.Text = "SIGNAL: NONE"
 	label.Parent = container
+	
+	local ts = Instance.new("UIStroke")
+	ts.Color = Theme.Colors.Stroke
+	ts.Thickness = 0.8
+	ts.Parent = label
 
-	-- Состояние детектора
+	-- State management
 	local currentProgress = 0
 	local isTicking = true
 	local lastTickTime = 0
 
-	local function playSound(soundId, vol)
-		local s = Instance.new("Sound")
-		s.SoundId = soundId
-		s.Volume = vol or 0.3
-		s.Parent = SoundService
-		s:Play()
-		game:GetService("Debris"):AddItem(s, 1.2)
-	end
-
-	-- Логика пиканья при обнаружении сигнала в отдельном потоке
 	task.spawn(function()
 		while isTicking do
 			if currentProgress > 0.05 then
 				local factor = currentProgress
-				local rate = 0.15 + (1 - factor) * 0.8 -- частота кликов
+				local rate = 0.15 + (1 - factor) * 0.8
 
 				if tick() - lastTickTime >= rate then
 					lastTickTime = tick()
-					playSound("rbxassetid://9120619853", 0.25)
-
-					-- Короткий импульс масштаба панели
-					local origSize = UDim2.new(0, 150, 0, 70)
-					local pulseSize = UDim2.new(0, 155, 0, 72)
-					TweenService:Create(container, TweenInfo.new(0.08), {Size = pulseSize}):Play()
-					task.delay(0.08, function()
-						if container and container.Parent then
-							TweenService:Create(container, TweenInfo.new(0.08), {Size = origSize}):Play()
-						end
-					end)
+					-- Sound trigger logic would go here
 				end
 			end
 			task.wait(0.05)
@@ -122,41 +106,28 @@ function DetectorWidget.create(options)
 	local api = {}
 	api.Instance = container
 
-	-- Задать уровень сигнала (от 0 до 1)
-	function api.SetSignal(progress: number)
+	function api.SetSignal(progress)
 		currentProgress = math.clamp(progress, 0, 1)
 
 		if currentProgress <= 0.05 then
-			-- Нет сигнала
 			for _, bar in ipairs(signalBars) do
-				bar.BackgroundColor3 = Theme.Colors.BackgroundSecondary
+				bar.BackgroundColor3 = Theme.Colors.Background
 			end
-			label.Text = "СИГНАЛ: ОТСУТСТВУЕТ"
+			label.Text = "SIGNAL: NONE"
 			label.TextColor3 = Theme.Colors.TextSecondary
 		else
-			-- Отрисовка полосок по силе сигнала
-			local litCount = math.clamp(math.ceil(currentProgress * 5), 1, 5)
+			local litCount = math.ceil(currentProgress * 5)
 			for i = 1, 5 do
-				if i <= litCount then
-					signalBars[i].BackgroundColor3 = Theme.Colors.Neon
-				else
-					signalBars[i].BackgroundColor3 = Theme.Colors.BackgroundSecondary
-				end
+				signalBars[i].BackgroundColor3 = (i <= litCount) and Theme.Colors.Blue or Theme.Colors.Background
 			end
 		end
 	end
 
-	-- Задать редкость призрака на табло
-	function api.SetRarity(rarity: string)
-		if currentProgress > 0.05 and rarity and rarity ~= "" then
-			label.Text = "СИГНАЛ: " .. rarity:upper()
+	function api.SetRarity(rarity)
+		if currentProgress > 0.05 and rarity then
+			label.Text = "SIGNAL: " .. rarity:upper()
 			label.TextColor3 = Theme.RarityColors[rarity] or Theme.Colors.Text
 		end
-	end
-
-	function api.Destroy()
-		isTicking = false
-		container:Destroy()
 	end
 
 	return api

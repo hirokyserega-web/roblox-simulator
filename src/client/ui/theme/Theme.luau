@@ -1,45 +1,49 @@
--- UI Тема и дизайн-система (Theme) для Ghost Hunter Simulator
+-- UI Theme & Design System (Candy 3D Style) for Ghost Hunter Simulator
 local Theme = {
-	-- Цветовая палитра
+	-- Color Palette (from Concept)
 	Colors = {
-		Background = Color3.fromHex("1A1B2E"),      -- Темный фон панелей
-		BackgroundSecondary = Color3.fromHex("252641"), -- Карточки, вторичный фон
-		Accent = Color3.fromHex("7B2FF7"),          -- Главный фиолетовый
-		Neon = Color3.fromHex("00E5FF"),            -- Сигнал, подсветка, неон
-		Success = Color3.fromHex("3AE374"),         -- Деньги, кнопки успеха
-		Warning = Color3.fromHex("FFC048"),         -- Полная сумка, предупреждения
-		Error = Color3.fromHex("FF3F6C"),           -- Недостаток монет, ошибки
-		Text = Color3.fromHex("FFFFFF"),            -- Основной белый текст
-		TextSecondary = Color3.fromHex("B8B9D6"),   -- Вторичный серый текст
-		Stroke = Color3.fromHex("0D0E1A")           -- Темная обводка
+		Background = Color3.fromHex("12131F"),      -- Main backdrop
+		Panel = Color3.fromHex("232544"),           -- Panel background
+		PanelOpacity = 0.92,
+		
+		Green = Color3.fromHex("3AE374"),           -- BUY / Money / Success
+		Red = Color3.fromHex("FF3F4B"),             -- Close / Not enough / Error
+		Yellow = Color3.fromHex("FFC048"),          -- MAX / Trophies / Warning
+		Purple = Color3.fromHex("7B2FF7"),          -- Rebirth / Pets / Accent
+		Blue = Color3.fromHex("00E5FF"),            -- Capture / Rare / Neon
+		Orange = Color3.fromHex("FF8A3D"),          -- Shop
+		
+		Text = Color3.fromHex("FFFFFF"),            -- Main white text
+		Stroke = Color3.fromHex("14141E"),          -- Dark stroke for text/UI
 	},
 
-	-- Цвета редкостей
+	-- Rarity Colors
 	RarityColors = {
 		Common = Color3.fromHex("C9CCD6"),
 		Uncommon = Color3.fromHex("3AE374"),
-		Rare = Color3.fromHex("3A8DFF"),
+		Rare = Color3.fromHex("00E5FF"),
 		Epic = Color3.fromHex("B24BF3"),
 		Legendary = Color3.fromHex("FF9F1C"),
-		Secret = Color3.fromHex("00E5FF") -- Радужная анимированная подсветка
+		Secret = Color3.fromHex("7B2FF7")
 	},
 
-	-- Типографика
+	-- Typography
 	Fonts = {
-		Title = Enum.Font.FredokaOne,
-		Button = Enum.Font.FredokaOne,
-		Body = Enum.Font.GothamMedium,
-		Bold = Enum.Font.GothamBold
+		Main = Enum.Font.GothamBlack,
+		Secondary = Enum.Font.FredokaOne,
 	},
 
-	-- Общие параметры дизайна
+	-- Design Parameters
 	Sizes = {
-		BorderWidth = 3.5,
-		CornerRadius = UDim.new(0, 8),
-		PanelCornerRadius = UDim.new(0, 16)
+		CornerButton = UDim.new(0, 14),
+		CornerPanel = UDim.new(0, 20),
+		CornerPill = UDim.new(1, 0),
+		StrokeThickness = 2,
+		TextStrokeThickness = 1.5,
+		ButtonDepth = 4,
 	},
 
-	-- Звуки интерфейса (ID ассетов)
+	-- Sounds
 	Sounds = {
 		Click = "rbxassetid://8214392737",
 		Success = "rbxassetid://2865227271",
