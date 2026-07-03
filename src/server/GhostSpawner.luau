@@ -1,4 +1,4 @@
--- Модуль спавнера привидений на сервере с учетом локаций, редкостей и лимитов
+-- Модуль спавнера привидений на сервере (Логический спавн в ReplicatedStorage для каждого игрока)
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
@@ -8,8 +8,9 @@ local GhostConfig = require(ReplicatedStorage.Shared.config.GhostConfig)
 local LocationConfig = require(ReplicatedStorage.Shared.config.LocationConfig)
 
 local GhostSpawner = {}
-local spawnedGhostsFolder = nil
+local playerGhostsFolder = nil
 local activeZones = {}
+local activePlayerTasks = {} -- Ключ: UserId, Значение: boolean (активен ли спавнер для игрока)
 
 -- Выбор случайной редкости призрака из списка разрешенных для конкретной зоны
 local function chooseRandomRarityForZone(allowedGhosts: table): string
@@ -41,103 +42,108 @@ local function chooseRandomRarityForZone(allowedGhosts: table): string
 	return allowedGhosts[1] or "Common"
 end
 
--- Инициализация и запуск спавнера во всех локациях
-function GhostSpawner.start(zonesTable: table)
+-- Инициализация спавнера
+function GhostSpawner.init(zonesTable: table)
 	activeZones = zonesTable
-
-	-- Создаем или находим папку для привидений в Workspace
-	spawnedGhostsFolder = Workspace:FindFirstChild("SpawnedGhosts")
-	if not spawnedGhostsFolder then
-		spawnedGhostsFolder = Instance.new("Folder")
-		spawnedGhostsFolder.Name = "SpawnedGhosts"
-		spawnedGhostsFolder.Parent = Workspace
-	end
-
-	-- Запускаем отдельные потоки спавна для каждой зоны
-	for zoneId, zonePart in pairs(activeZones) do
-		local config = LocationConfig[zoneId]
-		if not config then continue end
-
-		task.spawn(function()
-			while true do
-				task.wait(GameConfig.SpawnInterval)
-				local ok, err = pcall(function()
-					GhostSpawner.spawnGhostInZone(zoneId, zonePart)
-				end)
-				if not ok then
-					warn(string.format("[GHOST SPAWNER] Ошибка спавна в зоне %s: %s", zoneId, tostring(err)))
-				end
-			end
-		end)
-		print("[GHOST SPAWNER] Запущен спавн для локации: " .. config.DisplayName)
-	end
+	playerGhostsFolder = ReplicatedStorage:FindFirstChild("PlayerGhosts")
 end
 
--- Подсчет количества призраков, заспавненных в определенной зоне
-local function getGhostsCountInZone(zoneId: string): number
+-- Подсчет призраков игрока в конкретной зоне
+local function getPlayerGhostsCountInZone(playerFolder: Folder, zoneId: string): number
 	local count = 0
-	for _, ghost in ipairs(spawnedGhostsFolder:GetChildren()) do
-		if ghost:GetAttribute("SpawnZoneName") == zoneId then
+	for _, entity in ipairs(playerFolder:GetChildren()) do
+		if entity:GetAttribute("SpawnZoneName") == zoneId then
 			count = count + 1
 		end
 	end
 	return count
 end
 
--- Спавн призрака в конкретной зоне
-function GhostSpawner.spawnGhostInZone(zoneId: string, zonePart: Part)
+-- Спавн логического призрака для конкретного игрока в конкретной зоне
+local function spawnLogicalGhostForPlayer(player: Player, playerFolder: Folder, zoneId: string, zonePart: Part)
 	local config = LocationConfig[zoneId]
-	if not config or not spawnedGhostsFolder then return end
-
-	-- Проверка зонального лимита
-	local currentCount = getGhostsCountInZone(zoneId)
-	if currentCount >= config.MaxGhosts then
-		return
-	end
+	if not config then return end
 
 	-- Выбор редкости
 	local rarityId = chooseRandomRarityForZone(config.AllowedGhosts)
 	local info = GhostConfig[rarityId]
 	if not info then return end
 
-	-- Создаем физическую часть привидения
-	local ghostPart = Instance.new("Part")
-	ghostPart.Name = "Ghost_" .. rarityId
-	ghostPart.Shape = Enum.PartType.Ball
-	ghostPart.Size = Vector3.new(3, 3, 3)
-	ghostPart.Color = info.Color
-	ghostPart.Material = Enum.Material.Neon
-	ghostPart.CanCollide = false
-	ghostPart.TopSurface = Enum.SurfaceType.Smooth
-	ghostPart.BottomSurface = Enum.SurfaceType.Smooth
-	ghostPart.Anchored = true
-
-	-- Вычисляем случайную позицию в границах зоны
+	-- Расчет случайных координат в границах зоны спавна
 	local zoneSize = zonePart.Size
 	local zonePos = zonePart.Position
 	local randomX = zonePos.X + (math.random() - 0.5) * zoneSize.X
 	local randomZ = zonePos.Z + (math.random() - 0.5) * zoneSize.Z
-	local spawnY = zonePos.Y + (zoneSize.Y / 2) + (ghostPart.Size.Y / 2) + 1.5
+	local spawnY = zonePos.Y + (zoneSize.Y / 2) + 1.5 -- Высота (будущая центральная точка парта)
 
-	ghostPart.Position = Vector3.new(randomX, spawnY, randomZ)
+	local targetPosition = Vector3.new(randomX, spawnY, randomZ)
 
-	-- Задаем необходимые атрибуты
-	ghostPart:SetAttribute("Rarity", rarityId)
-	ghostPart:SetAttribute("GhostId", HttpService:GenerateGUID(false))
-	ghostPart:SetAttribute("Value", info.BasePrice)
-	ghostPart:SetAttribute("SpawnZoneName", zoneId)
+	-- Создаем логический объект (папку) призрака в ReplicatedStorage
+	local ghostEntity = Instance.new("Folder")
+	ghostEntity.Name = "GhostEntity_" .. rarityId
 
-	-- Поведение призрака для GhostBehaviorService
-	ghostPart:SetAttribute("BehaviorType", info.BehaviorType)
-	ghostPart:SetAttribute("Speed", info.Speed)
-	ghostPart:SetAttribute("FleeRange", info.FleeRange)
-	ghostPart:SetAttribute("AggroRange", info.AggroRange)
-	ghostPart:SetAttribute("TeleportInterval", info.TeleportInterval)
-	ghostPart:SetAttribute("ScareInterval", info.ScareInterval)
-	ghostPart:SetAttribute("FloatSeed", math.random() * 100)
+	-- Задаем все атрибуты ИИ и поимки
+	ghostEntity:SetAttribute("Rarity", rarityId)
+	ghostEntity:SetAttribute("GhostId", HttpService:GenerateGUID(false))
+	ghostEntity:SetAttribute("Value", info.BasePrice)
+	ghostEntity:SetAttribute("SpawnZoneName", zoneId)
+	ghostEntity:SetAttribute("Position", targetPosition)
+	
+	-- Поведение
+	ghostEntity:SetAttribute("BehaviorType", info.BehaviorType)
+	ghostEntity:SetAttribute("Speed", info.Speed)
+	ghostEntity:SetAttribute("FleeRange", info.FleeRange)
+	ghostEntity:SetAttribute("AggroRange", info.AggroRange)
+	ghostEntity:SetAttribute("TeleportInterval", info.TeleportInterval)
+	ghostEntity:SetAttribute("ScareInterval", info.ScareInterval)
+	ghostEntity:SetAttribute("FloatSeed", math.random() * 100)
 
-	-- Помещаем в общую папку привидений
-	ghostPart.Parent = spawnedGhostsFolder
+	ghostEntity.Parent = playerFolder
+end
+
+-- Инициализация персонального спавна для вошедшего игрока
+function GhostSpawner.setupPlayer(player: Player)
+	local userId = player.UserId
+	activePlayerTasks[userId] = true
+
+	local pFolder = playerGhostsFolder:WaitForChild(tostring(userId), 10)
+	if not pFolder then
+		warn("[GHOST SPAWNER] Не найдена папка PlayerGhosts для игрока: " .. player.Name)
+		return
+	end
+
+	-- Запускаем поток персонального спавна
+	task.spawn(function()
+		while activePlayerTasks[userId] and player.Parent do
+			task.wait(GameConfig.SpawnInterval)
+			
+			-- Пробегаемся по всем локациям
+			for zoneId, zonePart in pairs(activeZones) do
+				local config = LocationConfig[zoneId]
+				if not config then continue end
+
+				-- Валидация античита / разблокировки:
+				-- Призраки не будут спавниться в заблокированных для игрока локациях!
+				local isUnlocked = (config.Cost == 0) or (player:GetAttribute("Unlocked_" .. zoneId) == true)
+				if isUnlocked then
+					local currentCount = getPlayerGhostsCountInZone(pFolder, zoneId)
+					if currentCount < config.MaxGhosts then
+						pcall(function()
+							spawnLogicalGhostForPlayer(player, pFolder, zoneId, zonePart)
+						end)
+					end
+				end
+			end
+		end
+		print("[GHOST SPAWNER] Поток спавнера остановлен для " .. player.Name)
+	end)
+
+	print("[GHOST SPAWNER] Персональный спавнер успешно запущен для " .. player.Name)
+end
+
+-- Остановка спавнера для вышедшего игрока
+function GhostSpawner.removePlayer(player: Player)
+	activePlayerTasks[player.UserId] = nil
 end
 
 return GhostSpawner

@@ -56,6 +56,14 @@ end
 
 -- Инициализация систем
 local function init()
+	-- Создаем корневую папку для локальных призраков в ReplicatedStorage
+	local playerGhostsFolder = ReplicatedStorage:FindFirstChild("PlayerGhosts")
+	if not playerGhostsFolder then
+		playerGhostsFolder = Instance.new("Folder")
+		playerGhostsFolder.Name = "PlayerGhosts"
+		playerGhostsFolder.Parent = ReplicatedStorage
+	end
+
 	-- Инициализация экономики, рынка и улучшений
 	SellService.init()
 	UpgradeService.init()
@@ -72,14 +80,19 @@ local function init()
 	-- Инициализация поведения призраков (ИИ)
 	GhostBehaviorService.init()
 	
-	-- Запуск спавнера с плитами всех локаций
-	GhostSpawner.start(LocationService.getZones())
+	-- Инициализация спавнера
+	GhostSpawner.init(LocationService.getZones())
 	
 	-- Запуск сервиса поимки
 	CaptureService.init()
 	
 	-- Настройка игрока при входе
 	local function onPlayerAdded(player: Player)
+		-- Создаем личную подпапку игрока в ReplicatedStorage
+		local pFolder = Instance.new("Folder")
+		pFolder.Name = tostring(player.UserId)
+		pFolder.Parent = playerGhostsFolder
+
 		-- Загружаем данные из DataStore
 		local loadedData = DataService.loadData(player)
 		
@@ -97,6 +110,9 @@ local function init()
 		player:SetAttribute("Unlocked_ForestArea", forestUnlocked)
 		player:SetAttribute("Unlocked_MansionArea", mansionUnlocked)
 		
+		-- Инициализируем персональный спавн призраков
+		GhostSpawner.setupPlayer(player)
+
 		-- Синхронизируем пустой стартовый инвентарь
 		local inventoryUpdateEvent = Remotes.getEvent("InventoryUpdate")
 		inventoryUpdateEvent:FireClient(player, InventoryService.getInventory(player))
@@ -112,6 +128,15 @@ local function init()
 		-- Сохраняем данные игрока перед его выходом
 		DataService.saveData(player)
 		
+		-- Останавливаем спавнер
+		GhostSpawner.removePlayer(player)
+
+		-- Удаляем логическую папку призраков игрока
+		local pFolder = playerGhostsFolder:FindFirstChild(tostring(player.UserId))
+		if pFolder then
+			pFolder:Destroy()
+		end
+
 		InventoryService.removePlayer(player)
 		CurrencyService.removePlayer(player)
 		UpgradeService.removePlayer(player)

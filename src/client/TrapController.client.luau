@@ -91,9 +91,9 @@ local function onInputBegan(input: InputObject, processed: boolean)
 		isHolding = true
 		
 		local target = mouse.Target
-		local spawnedGhostsFolder = Workspace:FindFirstChild("SpawnedGhosts")
+		local localGhostsFolder = Workspace:FindFirstChild("LocalGhosts")
 		
-		if target and spawnedGhostsFolder and target:IsDescendantOf(spawnedGhostsFolder) then
+		if target and localGhostsFolder and target:IsDescendantOf(localGhostsFolder) then
 			local character = player.Character
 			if not character then return end
 			local rootPart = character:FindFirstChild("HumanoidRootPart")
@@ -166,9 +166,11 @@ local function onHeartbeat(dt: number)
 
 	-- Успешный захват
 	if captureProgress >= 1 then
-		local ghostToCapture = activeGhost
+		local ghostId = activeGhost:GetAttribute("GhostId")
 		resetCapture()
-		captureGhostEvent:FireServer(ghostToCapture)
+		if ghostId then
+			captureGhostEvent:FireServer(ghostId)
+		end
 	end
 end
 

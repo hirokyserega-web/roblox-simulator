@@ -11,7 +11,7 @@ local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
 -- Ссылка на папку со спавнящимися привидениями
-local spawnedGhostsFolder = Workspace:WaitForChild("SpawnedGhosts", 15)
+local spawnedGhostsFolder = Workspace:WaitForChild("LocalGhosts", 15)
 
 -- Переменные для элементов UI
 local screenGui = nil
