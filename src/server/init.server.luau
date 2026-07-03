@@ -16,6 +16,7 @@ local DataService = require(ServerScriptService.Server.DataService)
 local LeaderboardService = require(ServerScriptService.Server.LeaderboardService)
 local GhostBehaviorService = require(ServerScriptService.Server.GhostBehaviorService)
 local LocationService = require(ServerScriptService.Server.LocationService)
+local PetService = require(ServerScriptService.Server.PetService)
 
 print("Server started")
 
@@ -83,6 +84,9 @@ local function init()
 	-- Инициализация спавнера
 	GhostSpawner.init(LocationService.getZones())
 	
+	-- Инициализация логики питомцев
+	PetService.init()
+	
 	-- Запуск сервиса поимки
 	CaptureService.init()
 	
@@ -99,6 +103,9 @@ local function init()
 		-- Инициализируем валюту и улучшения на основе загруженных данных
 		CurrencyService.setupPlayer(player, loadedData)
 		UpgradeService.setupPlayer(player, loadedData)
+		
+		-- Инициализируем питомцев
+		PetService.setupPlayer(player, loadedData and loadedData.Pets)
 
 		-- Инициализируем разблокированные локации
 		local forestUnlocked = false
@@ -140,6 +147,7 @@ local function init()
 		InventoryService.removePlayer(player)
 		CurrencyService.removePlayer(player)
 		UpgradeService.removePlayer(player)
+		PetService.removePlayer(player)
 	end)
 end
 

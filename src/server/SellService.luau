@@ -108,13 +108,22 @@ function SellService.onSellTriggered(player: Player)
 		end
 	end
 
+	-- Получаем и применяем множитель питомцев
+	local PetService = require(ServerScriptService.Server.PetService)
+	local multiplier = PetService.getMultiplier(player)
+	local finalEarnings = math.floor(totalEarnings * multiplier)
+
 	-- 4. Начисляем монеты
-	if totalEarnings > 0 then
-		CurrencyService.add(player, "Money", totalEarnings)
+	if finalEarnings > 0 then
+		CurrencyService.add(player, "Money", finalEarnings)
 		
 		-- Уведомляем клиента о успешной продаже
 		local notificationEvent = Remotes.getEvent("ShowNotification")
-		notificationEvent:FireClient(player, string.format("Продано призраков: %d. Получено: +%d Монет", #caughtGhosts, totalEarnings))
+		local msg = string.format("Продано призраков: %d. Получено: +%d Монет", #caughtGhosts, finalEarnings)
+		if multiplier > 1.0 then
+			msg = msg .. string.format(" (Множитель: x%.1f)", multiplier)
+		end
+		notificationEvent:FireClient(player, msg)
 		
 		-- Синхронизируем очищенный инвентарь с клиентом
 		local inventoryUpdateEvent = Remotes.getEvent("InventoryUpdate")

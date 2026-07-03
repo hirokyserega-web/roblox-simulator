@@ -66,7 +66,8 @@ function DataService.saveData(player: Player)
 
 	local key = "Player_" .. player.UserId
 	
-	-- Собираем актуальные данные из атрибутов игрока
+		-- Собираем актуальные данные из атрибутов игрока и PetService
+	local PetService = require(game:GetService("ServerScriptService").Server.PetService)
 	local dataToSave = {
 		Money = player:GetAttribute("Money") or 0,
 		Crystals = player:GetAttribute("Crystals") or 0,
@@ -79,7 +80,8 @@ function DataService.saveData(player: Player)
 		Locations = {
 			ForestArea = player:GetAttribute("Unlocked_ForestArea") or false,
 			MansionArea = player:GetAttribute("Unlocked_MansionArea") or false
-		}
+		},
+		Pets = PetService.getSaveData(player)
 	}
 
 	local attempts = 3
