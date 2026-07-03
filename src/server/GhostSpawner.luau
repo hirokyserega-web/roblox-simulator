@@ -91,21 +91,19 @@ function GhostSpawner.spawnGhost()
 
 	ghostPart.Position = Vector3.new(randomX, spawnY, randomZ)
 
-	-- Задаем необходимые атрибуты согласно ТЗ
+	-- Задаем необходимые атрибуты согласно ТЗ и ИИ поведению
 	ghostPart:SetAttribute("Rarity", rarityId)
 	ghostPart:SetAttribute("GhostId", HttpService:GenerateGUID(false))
 	ghostPart:SetAttribute("Value", info.BasePrice)
-
-	-- Для лучшего визуального восприятия добавим небольшое парение (синусоидальное движение)
-	task.spawn(function()
-		local originY = ghostPart.Position.Y
-		local seed = math.random() * 100
-		while ghostPart and ghostPart.Parent do
-			local offset = math.sin(tick() * 2.5 + seed) * 0.75
-			ghostPart.Position = Vector3.new(ghostPart.Position.X, originY + offset, ghostPart.Position.Z)
-			task.wait()
-		end
-	end)
+	
+	-- Поведение призрака для GhostBehaviorService
+	ghostPart:SetAttribute("BehaviorType", info.BehaviorType)
+	ghostPart:SetAttribute("Speed", info.Speed)
+	ghostPart:SetAttribute("FleeRange", info.FleeRange)
+	ghostPart:SetAttribute("AggroRange", info.AggroRange)
+	ghostPart:SetAttribute("TeleportInterval", info.TeleportInterval)
+	ghostPart:SetAttribute("ScareInterval", info.ScareInterval)
+	ghostPart:SetAttribute("FloatSeed", math.random() * 100)
 
 	-- Помещаем в папку привидений
 	ghostPart.Parent = spawnedGhostsFolder

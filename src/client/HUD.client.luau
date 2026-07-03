@@ -156,8 +156,74 @@ notificationEvent.OnClientEvent:Connect(function(message)
 	showNotification(message)
 end)
 
+-- Эффекты испуга и атаки привидений
+local Lighting = game:GetService("Lighting")
+
+local function applyBlurEffect()
+	local blur = Lighting:FindFirstChild("SpookyBlur")
+	if not blur then
+		blur = Instance.new("BlurEffect")
+		blur.Name = "SpookyBlur"
+		blur.Size = 0
+		blur.Parent = Lighting
+	end
+	
+	blur.Size = 24
+	
+	local tweenInfo = TweenInfo.new(1.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	local tween = TweenService:Create(blur, tweenInfo, {Size = 0})
+	tween:Play()
+end
+
+local function cameraShake(duration: number, intensity: number)
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if not humanoid then return end
+	
+	local startTime = tick()
+	task.spawn(function()
+		while tick() - startTime < duration do
+			local offset = Vector3.new(
+				(math.random() - 0.5) * intensity,
+				(math.random() - 0.5) * intensity,
+				0
+			)
+			humanoid.CameraOffset = offset
+			task.wait()
+		end
+		humanoid.CameraOffset = Vector3.new(0, 0, 0)
+	end)
+end
+
+local function playSpookySound()
+	local sound = Instance.new("Sound")
+	sound.SoundId = "rbxassetid://134012243" -- Смех призрака
+	sound.Volume = 0.8
+	sound.Parent = Workspace
+	sound:Play()
+	sound.Ended:Connect(function()
+		sound:Destroy()
+	end)
+end
+
+-- Слушаем событие испуга
+local scareEvent = Remotes.getEvent("ScarePlayer")
+scareEvent.OnClientEvent:Connect(function(scareType)
+	applyBlurEffect()
+	playSpookySound()
+	
+	if scareType == "ATK" then
+		cameraShake(1.5, 1.2)
+		showNotification("ОГЛУШЕН! ПОТЕРЯН 1 ПРИЗРАК!")
+	else
+		cameraShake(0.8, 0.5)
+		showNotification("БУ! Рядом призрак!")
+	end
+end)
+
 -- Запуск HUD
 createHUD()
 startCurrencyController()
 
-print("HUD client controller started")
+print("HUD client controller started (with Scare FX)")
+

@@ -14,6 +14,7 @@ local SellService = require(ServerScriptService.Server.SellService)
 local UpgradeService = require(ServerScriptService.Server.UpgradeService)
 local DataService = require(ServerScriptService.Server.DataService)
 local LeaderboardService = require(ServerScriptService.Server.LeaderboardService)
+local GhostBehaviorService = require(ServerScriptService.Server.GhostBehaviorService)
 
 print("Server started")
 
@@ -65,6 +66,9 @@ local function init()
 	
 	-- Инициализация глобальной таблицы рекордов
 	LeaderboardService.init()
+	
+	-- Инициализация поведения призраков (ИИ)
+	GhostBehaviorService.init()
 	
 	-- Запуск спавнера
 	GhostSpawner.start(spawnZone)
