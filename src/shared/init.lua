@@ -1,2 +1,0 @@
-local Shared = {}
-return Shared
