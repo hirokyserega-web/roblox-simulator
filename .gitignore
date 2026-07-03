@@ -1,0 +1,4 @@
+.rojo/
+*.log
+.DS_Store
+*.model.json
