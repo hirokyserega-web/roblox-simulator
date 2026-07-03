@@ -11,6 +11,7 @@ local CurrencyService = require(ServerScriptService.Server.CurrencyService)
 
 local PetService = {}
 local playerPets = {} -- Ключ: UserId, Значение: { { Id = GUID, Type = "Cat", Equipped = false }, ... }
+local activePetModels = {} -- Ключ: UserId, Значение: Folder с 3D-моделями питомцев
 local standsFolder = nil
 
 -- Создание физического стенда для яйца
@@ -91,7 +92,6 @@ end
 
 -- Инициализация сервиса питомцев
 function PetService.init()
-	-- Создаем папку для стендов
 	standsFolder = Workspace:FindFirstChild("EggStands")
 	if not standsFolder then
 		standsFolder = Instance.new("Folder")
@@ -99,21 +99,213 @@ function PetService.init()
 		standsFolder.Parent = Workspace
 	end
 
-	-- Создаем стенды
 	createEggStand("CommonEgg")
 	createEggStand("SpookyEgg")
 
-	-- Подключаем обработку RemoteEvents
 	local equipPetEvent = Remotes.getEvent("EquipPet")
 	equipPetEvent.OnServerEvent:Connect(PetService.onEquipPetRequest)
 
 	print("[PET SERVICE] Сервис питомцев запущен!")
 end
 
+-- Удаление 3D-моделей питомцев игрока
+function PetService.clearFollowers(player: Player)
+	local folder = activePetModels[player.UserId]
+	if folder then
+		folder:Destroy()
+		activePetModels[player.UserId] = nil
+	end
+
+	-- Очищаем все аттачменты следования в HRP
+	local character = player.Character
+	local hrp = character and character:FindFirstChild("HumanoidRootPart")
+	if hrp then
+		for _, child in ipairs(hrp:GetChildren()) do
+			if child.Name:sub(1, 14) == "PetAttachment_" then
+				child:Destroy()
+			end
+		end
+	end
+end
+
+-- Обновление/создание 3D-моделей питомцев с физикой
+function PetService.updateFollowers(player: Player)
+	PetService.clearFollowers(player)
+
+	local character = player.Character
+	if not character then return end
+	local hrp = character:WaitForChild("HumanoidRootPart", 5)
+	if not hrp then return end
+
+	local pets = playerPets[player.UserId] or {}
+	local equipped = {}
+	for _, pet in ipairs(pets) do
+		if pet.Equipped then
+			table.insert(equipped, pet)
+		end
+	end
+
+	if #equipped == 0 then return end
+
+	-- Создаем корневую папку для питомцев игрока
+	local folder = Instance.new("Folder")
+	folder.Name = player.Name .. "_Pets"
+	folder.Parent = Workspace
+	activePetModels[player.UserId] = folder
+
+	-- Задаем оффсеты следования в зависимости от количества
+	local offsets = {}
+	if #equipped == 1 then
+		offsets = { Vector3.new(0, 2, 3.5) }
+	elseif #equipped == 2 then
+		offsets = { Vector3.new(-2, 2, 3), Vector3.new(2, 2, 3) }
+	elseif #equipped == 3 then
+		offsets = { Vector3.new(-2.5, 2, 3), Vector3.new(0, 2.5, 3.8), Vector3.new(2.5, 2, 3) }
+	end
+
+	for i, pet in ipairs(equipped) do
+		local petInfo = PetConfig.Pets[pet.Type]
+		if not petInfo then continue end
+
+		local offset = offsets[i]
+
+		-- Создаем Attachment на HRP игрока
+		local attachHRP = Instance.new("Attachment")
+		attachHRP.Name = "PetAttachment_" .. i
+		attachHRP.Position = offset
+		attachHRP.Parent = hrp
+
+		-- Создаем саму деталь питомца (сфера)
+		local petPart = Instance.new("Part")
+		petPart.Name = "PetPart_" .. pet.Id
+		petPart.Size = Vector3.new(1.2, 1.2, 1.2)
+		petPart.Shape = Enum.PartType.Ball
+		petPart.Color = petInfo.Color
+		petPart.Material = (petInfo.Rarity == "Legendary") and Enum.Material.Neon or Enum.Material.SmoothPlastic
+		petPart.CanCollide = false
+		petPart.Anchored = false
+		petPart.Position = hrp.Position + offset
+		petPart.Parent = folder
+
+		-- Attachment на самом питомце
+		local attachPet = Instance.new("Attachment")
+		attachPet.Parent = petPart
+
+		-- Настраиваем плавное следование через AlignPosition (координаты)
+		local alignPos = Instance.new("AlignPosition")
+		alignPos.Attachment0 = attachPet
+		alignPos.Attachment1 = attachHRP
+		alignPos.MaxForce = 35000
+		alignPos.Responsiveness = 15
+		alignPos.Parent = petPart
+
+		-- Настраиваем следование через AlignOrientation (поворот)
+		local alignOri = Instance.new("AlignOrientation")
+		alignOri.Attachment0 = attachPet
+		alignOri.Attachment1 = attachHRP
+		alignOri.MaxTorque = 35000
+		alignOri.Responsiveness = 15
+		alignOri.Parent = petPart
+
+		-- Процедурные украшения (ушки, крылья, ножки, эффекты)
+		if pet.Type == "Cat" or pet.Type == "Dog" or pet.Type == "Bunny" then
+			local earSize = (pet.Type == "Bunny") and Vector3.new(0.2, 0.7, 0.2) or Vector3.new(0.25, 0.4, 0.25)
+			local function addEar(side)
+				local ear = Instance.new("WedgePart")
+				ear.Size = earSize
+				ear.Color = petInfo.Color
+				ear.CanCollide = false
+				ear.Anchored = false
+				
+				local sideOffset = (side == "L") and -0.35 or 0.35
+				ear.CFrame = petPart.CFrame * CFrame.new(sideOffset, 0.6, -0.1) * CFrame.Angles(0, math.rad(90), 0)
+				ear.Parent = folder
+
+				local weld = Instance.new("WeldConstraint")
+				weld.Part0 = petPart
+				weld.Part1 = ear
+				weld.Parent = ear
+			end
+			addEar("L")
+			addEar("R")
+		elseif pet.Type == "Bat" then
+			-- Летучая мышь: добавляем крылышки
+			local function addWing(side)
+				local wing = Instance.new("Part")
+				wing.Size = Vector3.new(0.1, 0.6, 0.8)
+				wing.Color = petInfo.Color
+				wing.CanCollide = false
+				wing.Anchored = false
+				
+				local sideOffset = (side == "L") and -0.75 or 0.75
+				wing.CFrame = petPart.CFrame * CFrame.new(sideOffset, 0, 0.1)
+				wing.Parent = folder
+
+				local weld = Instance.new("WeldConstraint")
+				weld.Part0 = petPart
+				weld.Part1 = wing
+				weld.Parent = wing
+			end
+			addWing("L")
+			addWing("R")
+		elseif pet.Type == "Spider" then
+			-- Паук: 8 ножек
+			for leg = 1, 4 do
+				local function addLeg(side)
+					local legPart = Instance.new("Part")
+					legPart.Size = Vector3.new(0.15, 0.5, 0.15)
+					legPart.Color = petInfo.Color
+					legPart.CanCollide = false
+					legPart.Anchored = false
+					
+					local sideOff = (side == "L") and -0.6 or 0.6
+					legPart.CFrame = petPart.CFrame * CFrame.new(sideOff, -0.4, (leg - 2.5) * 0.3)
+					legPart.Parent = folder
+
+					local weld = Instance.new("WeldConstraint")
+					weld.Part0 = petPart
+					weld.Part1 = legPart
+					weld.Parent = legPart
+				end
+				addLeg("L")
+				addLeg("R")
+			end
+		elseif pet.Type == "GhostPet" then
+			-- Дух-помощник: Эффект свечения и партиклы
+			local light = Instance.new("PointLight")
+			light.Color = Color3.fromRGB(0, 229, 255)
+			light.Range = 6
+			light.Brightness = 2
+			light.Parent = petPart
+
+			local pe = Instance.new("ParticleEmitter")
+			pe.Texture = "rbxassetid://244221447"
+			pe.Size = NumberSequence.new(0.4)
+			pe.Lifetime = NumberRange.new(0.5, 1.0)
+			pe.Rate = 12
+			pe.Speed = NumberRange.new(0.5, 1.5)
+			pe.Parent = petPart
+		end
+	end
+end
+
 -- Настройка питомцев при входе игрока
 function PetService.setupPlayer(player: Player, loadedPets: table?)
 	playerPets[player.UserId] = loadedPets or {}
 	
+	-- Слушаем загрузку персонажа для создания 3D-моделей
+	player.CharacterAdded:Connect(function(char)
+		task.wait(1.5) -- Даем загрузиться физике
+		PetService.updateFollowers(player)
+	end)
+
+	if player.Character then
+		task.spawn(function()
+			task.wait(1.5)
+			PetService.updateFollowers(player)
+		end)
+	end
+
 	-- Синхронизируем инвентарь с клиентом при входе
 	task.wait(1)
 	PetService.syncPets(player)
@@ -156,19 +348,36 @@ function PetService.hatchEgg(player: Player, eggType: string)
 		local petInfo = PetConfig.Pets[chosenPetType]
 		if not petInfo then return end
 
+		-- Считаем количество уже экипированных питомцев
+		local equippedCount = 0
+		for _, p in ipairs(playerPets[player.UserId] or {}) do
+			if p.Equipped then
+				equippedCount = equippedCount + 1
+			end
+		end
+
+		-- АВТО-ЭКИПИРОВКА: если есть свободный слот (экипировано меньше 3)
+		local shouldAutoEquip = (equippedCount < 3)
+
 		-- Создаем запись о питомце
 		local newPet = {
 			Id = HttpService:GenerateGUID(false),
 			Type = chosenPetType,
-			Equipped = false
+			Equipped = shouldAutoEquip
 		}
 
 		table.insert(playerPets[player.UserId], newPet)
 		PetService.syncPets(player)
 
+		-- Если сработал авто-экип, обновляем 3D-модели в мире
+		if shouldAutoEquip then
+			PetService.updateFollowers(player)
+		end
+
 		-- Отправляем уведомление
 		local notificationEvent = Remotes.getEvent("ShowNotification")
-		notificationEvent:FireClient(player, string.format("Вылупился питомец: %s (x%.1f монет)!", petInfo.DisplayName, petInfo.Multiplier))
+		local autoEquipMsg = shouldAutoEquip and " (Автоматически экипирован!)" or ""
+		notificationEvent:FireClient(player, string.format("Вылупился питомец: %s (x%.1f монет)%s!", petInfo.DisplayName, petInfo.Multiplier, autoEquipMsg))
 		print(string.format("[PET SERVICE] Игрок %s купил %s и выбил %s", player.Name, eggType, chosenPetType))
 	else
 		local notificationEvent = Remotes.getEvent("ShowNotification")
@@ -220,6 +429,9 @@ function PetService.equipPet(player: Player, petId: string)
 	end
 
 	PetService.syncPets(player)
+	
+	-- Обновляем 3D-модели питомцев в мире
+	PetService.updateFollowers(player)
 end
 
 -- Вычисление суммарного множителя для игрока (сложение бонусов: 1.0 + sum(multiplier - 1.0))
@@ -250,10 +462,19 @@ function PetService.awardPet(player: Player, petType: string)
 	local petInfo = PetConfig.Pets[petType]
 	if not petInfo then return end
 
+	local equippedCount = 0
+	for _, p in ipairs(playerPets[player.UserId] or {}) do
+		if p.Equipped then
+			equippedCount = equippedCount + 1
+		end
+	end
+
+	local shouldAutoEquip = (equippedCount < 3)
+
 	local newPet = {
 		Id = HttpService:GenerateGUID(false),
 		Type = petType,
-		Equipped = false
+		Equipped = shouldAutoEquip
 	}
 
 	if not playerPets[player.UserId] then
@@ -262,12 +483,17 @@ function PetService.awardPet(player: Player, petType: string)
 
 	table.insert(playerPets[player.UserId], newPet)
 	PetService.syncPets(player)
+
+	if shouldAutoEquip then
+		PetService.updateFollowers(player)
+	end
 	
 	print(string.format("[PET SERVICE] Игроку %s напрямую выдан питомец: %s", player.Name, petType))
 end
 
 -- Очистка памяти при выходе
 function PetService.removePlayer(player: Player)
+	PetService.clearFollowers(player)
 	playerPets[player.UserId] = nil
 end
 
