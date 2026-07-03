@@ -10,7 +10,7 @@ local Theme = require(script.Parent.Parent.theme.Theme)
 local Button = require(script.Parent.Parent.components.Button)
 local Panel = require(script.Parent.Parent.components.Panel)
 local ItemCard = require(script.Parent.Parent.components.ItemCard)
-local UIManager = require(script.Parent.Parent.UIManager)
+local UIManager = _G.UIManager
 local EggOpenCutscene = require(script.Parent.EggOpenCutscene)
 
 local player = Players.LocalPlayer

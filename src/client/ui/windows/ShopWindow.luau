@@ -10,7 +10,7 @@ local Theme = require(script.Parent.Parent.theme.Theme)
 local Button = require(script.Parent.Parent.components.Button)
 local Panel = require(script.Parent.Parent.components.Panel)
 local ProgressBar = require(script.Parent.Parent.components.ProgressBar)
-local UIManager = require(script.Parent.Parent.UIManager)
+local UIManager = _G.UIManager
 
 local player = Players.LocalPlayer
 local buyUpgradeEvent = Remotes.getEvent("BuyUpgrade")

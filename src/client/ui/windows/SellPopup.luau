@@ -6,7 +6,7 @@ local SoundService = game:GetService("SoundService")
 
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Theme = require(script.Parent.Parent.theme.Theme)
-local UIManager = require(script.Parent.Parent.UIManager)
+local UIManager = _G.UIManager
 
 local player = Players.LocalPlayer
 local sellCompletedEvent = Remotes.getEvent("SellCompleted")

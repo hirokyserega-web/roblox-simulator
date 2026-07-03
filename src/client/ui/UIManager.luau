@@ -49,6 +49,9 @@ local function init()
 		UIManager.ShowToast(text, type or "Info")
 	end
 
+	-- Экспортируем UIManager глобально ДО загрузки окон (чтобы окна не создавали циклический require)
+	_G.UIManager = UIManager
+
 	-- Загружаем и инициализируем все модули окон и эффектов с помощью task.defer (для предотвращения циклических крашей при require)
 	task.defer(function()
 		require(script.Parent.windows.ShopWindow)
@@ -62,6 +65,7 @@ local function init()
 		require(script.Parent.windows.SettingsWindow)
 		require(script.Parent.windows.TeleportWindow)
 		require(script.Parent.effects.ScreenEffects)
+		print("[UI MANAGER] Все окна успешно загружены и зарегистрированы!")
 	end)
 
 	print("[UI MANAGER] Клиентский менеджер интерфейса успешно запущен!")
