@@ -1,4 +1,4 @@
--- Общие настройки игры Ghost Hunter Simulator (Фаза 2)
+-- Общие настройки игры Ghost Hunter Simulator (Фаза 3)
 local GameConfig = {
 	-- Стартовые параметры игрока
 	StartingMoney = 0,
@@ -19,6 +19,11 @@ local GameConfig = {
 	-- Параметры тестовой карты
 	SpawnZoneSize = Vector3.new(60, 1, 60),
 	SpawnZonePosition = Vector3.new(0, 0.5, 0),
+
+	-- Параметры черного рынка (Зоны продажи)
+	BlackMarketPosition = Vector3.new(30, 0.5, 30),
+	BlackMarketSize = Vector3.new(10, 1, 10),
+	SellDistance = 15,           -- Максимально допустимая дистанция до зоны продажи
 }
 
 return GameConfig

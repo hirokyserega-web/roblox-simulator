@@ -5,9 +5,12 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local Workspace = game:GetService("Workspace")
 
 local GameConfig = require(ReplicatedStorage.Shared.config.GameConfig)
+local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local GhostSpawner = require(ServerScriptService.Server.GhostSpawner)
 local InventoryService = require(ServerScriptService.Server.InventoryService)
 local CaptureService = require(ServerScriptService.Server.CaptureService)
+local CurrencyService = require(ServerScriptService.Server.CurrencyService)
+local SellService = require(ServerScriptService.Server.SellService)
 
 print("Server started")
 
@@ -50,15 +53,32 @@ end
 local function init()
 	local spawnZone = getOrCreateSpawnZone()
 	
+	-- Инициализация игровой экономики и рынка
+	SellService.init()
+	
 	-- Запуск спавнера
 	GhostSpawner.start(spawnZone)
 	
 	-- Запуск сервиса поимки
 	CaptureService.init()
 	
+	-- Настройка игрока при входе
+	local function onPlayerAdded(player: Player)
+		CurrencyService.setupPlayer(player)
+		-- Синхронизируем пустой стартовый инвентарь
+		local inventoryUpdateEvent = Remotes.getEvent("InventoryUpdate")
+		inventoryUpdateEvent:FireClient(player, InventoryService.getInventory(player))
+	end
+
+	Players.PlayerAdded:Connect(onPlayerAdded)
+	for _, player in ipairs(Players:GetPlayers()) do
+		task.spawn(onPlayerAdded, player)
+	end
+
 	-- Слушаем выход игроков для очистки памяти
 	Players.PlayerRemoving:Connect(function(player)
 		InventoryService.removePlayer(player)
+		CurrencyService.removePlayer(player)
 	end)
 end
 
