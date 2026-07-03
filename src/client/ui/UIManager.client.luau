@@ -34,6 +34,21 @@ local function init()
 		UIManager.ShowToast(text, type or "Info")
 	end
 
+	-- Загружаем и инициализируем все модули окон и эффектов
+	task.spawn(function()
+		require(script.Parent.windows.ShopWindow)
+		require(script.Parent.windows.InventoryWindow)
+		require(script.Parent.windows.SellPopup)
+		require(script.Parent.windows.EggWindow)
+		require(script.Parent.windows.LeaderboardWindow)
+		require(script.Parent.windows.RebirthWindow)
+		require(script.Parent.windows.DailyRewardsWindow)
+		require(script.Parent.windows.CodesWindow)
+		require(script.Parent.windows.SettingsWindow)
+		require(script.Parent.windows.TeleportWindow)
+		require(script.Parent.effects.ScreenEffects)
+	end)
+
 	print("[UI MANAGER] Клиентский менеджер интерфейса успешно запущен!")
 end
 

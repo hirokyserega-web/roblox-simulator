@@ -1,4 +1,4 @@
--- Клиентский UI Инвентаря призраков (Inventory UI)
+-- Окно Инвентаря призраков (InventoryWindow)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
@@ -7,36 +7,32 @@ local GhostConfig = require(ReplicatedStorage.Shared.config.GhostConfig)
 local GameConfig = require(ReplicatedStorage.Shared.config.GameConfig)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 
--- Подгрузка темы и компонентов UI Kit
-local Theme = require(script.Parent.ui.theme.Theme)
-local Button = require(script.Parent.ui.components.Button)
-local Panel = require(script.Parent.ui.components.Panel)
-local ItemCard = require(script.Parent.ui.components.ItemCard)
-local UIManager = require(script.Parent.ui.UIManager)
+local Theme = require(script.Parent.Parent.theme.Theme)
+local Button = require(script.Parent.Parent.components.Button)
+local Panel = require(script.Parent.Parent.components.Panel)
+local ItemCard = require(script.Parent.Parent.components.ItemCard)
+local UIManager = require(script.Parent.Parent.UIManager)
 
 local player = Players.LocalPlayer
 local requestSellEvent = Remotes.getEvent("RequestSell")
 local inventoryUpdateEvent = Remotes.getEvent("InventoryUpdate")
 
+local InventoryWindow = {}
 local inventoryPanel = nil
 local scrollFrame = nil
 local valueLabel = nil
 local sellButtonComponent = nil
-
 local lastInventory = {}
 
--- Перерисовка карточек в инвентаре
 local function renderInventoryUI()
 	if not scrollFrame then return end
 
-	-- Очищаем
 	for _, child in ipairs(scrollFrame:GetChildren()) do
 		if child:IsA("Frame") then
 			child:Destroy()
 		end
 	end
 
-	-- Группируем по редкости, чтобы показать количество
 	local counts = {}
 	local totalValue = 0
 
@@ -50,7 +46,6 @@ local function renderInventoryUI()
 
 	valueLabel.Text = string.format("Общая ценность рюкзака: $%d", totalValue)
 
-	-- Заполняем сетку сгруппированными карточками
 	for rarity, count in pairs(counts) do
 		local conf = GhostConfig[rarity]
 		if not conf then continue end
@@ -75,7 +70,6 @@ local function renderInventoryUI()
 	scrollFrame.CanvasSize = UDim2.new(0, 0, 0, rows * 115)
 end
 
--- Обновление активности кнопки "Продать" на основе дистанции до Черного рынка
 local function checkSellZoneDistance()
 	local char = player.Character
 	local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -93,11 +87,9 @@ local function checkSellZoneDistance()
 	end
 end
 
--- Инициализация
-local function init()
+function InventoryWindow.init()
 	local screenGui = UIManager.getScreenGui()
 
-	-- Создаем премиум-панель
 	inventoryPanel = Panel.create({
 		Title = "РЮКЗАК ИНВЕНТАРЯ",
 		Size = UDim2.new(0, 380, 0, 350),
@@ -110,7 +102,6 @@ local function init()
 
 	UIManager.registerWindow("Inventory", inventoryPanel)
 
-	-- Текст ценности
 	valueLabel = Instance.new("TextLabel")
 	valueLabel.Size = UDim2.new(1, -20, 0, 25)
 	valueLabel.Position = UDim2.new(0, 10, 0, 10)
@@ -121,7 +112,6 @@ local function init()
 	valueLabel.Text = "Общая ценность рюкзака: $0"
 	valueLabel.Parent = inventoryPanel.Content
 
-	-- Скролл сетки
 	scrollFrame = Instance.new("ScrollingFrame")
 	scrollFrame.Size = UDim2.new(1, 0, 1, -95)
 	scrollFrame.Position = UDim2.new(0, 0, 0, 40)
@@ -135,7 +125,6 @@ local function init()
 	gridLayout.CellPadding = UDim2.new(0, 15, 0, 15)
 	gridLayout.Parent = scrollFrame
 
-	-- Кнопка продать всё
 	sellButtonComponent = Button.create({
 		Text = "ПРОДАТЬ ВСЁ (В зоне)",
 		Color = Theme.Colors.Success,
@@ -148,13 +137,11 @@ local function init()
 		end
 	})
 
-	-- Подписка на обновление инвентаря
 	inventoryUpdateEvent.OnClientEvent:Connect(function(inventory)
 		lastInventory = inventory
 		renderInventoryUI()
 	end)
 
-	-- Цикл проверки доступности зоны продажи
 	task.spawn(function()
 		while true do
 			checkSellZoneDistance()
@@ -163,5 +150,6 @@ local function init()
 	end)
 end
 
-init()
-print("[INVENTORY UI] Интерфейс рюкзака успешно загружен!")
+InventoryWindow.init()
+
+return InventoryWindow

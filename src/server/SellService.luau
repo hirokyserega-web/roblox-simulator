@@ -130,6 +130,10 @@ function SellService.onSellTriggered(player: Player)
 		end
 		notificationEvent:FireClient(player, msg)
 		
+		-- Уведомляем о продаже для показа попапа
+		local sellCompletedEvent = Remotes.getEvent("SellCompleted")
+		sellCompletedEvent:FireClient(player, finalEarnings, caughtGhosts)
+		
 		-- Синхронизируем очищенный инвентарь с клиентом
 		local inventoryUpdateEvent = Remotes.getEvent("InventoryUpdate")
 		inventoryUpdateEvent:FireClient(player, InventoryService.getInventory(player))

@@ -1,4 +1,4 @@
--- Клиентский UI Перерождений (Rebirth UI)
+-- Окно Перерождения (RebirthWindow)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
@@ -6,22 +6,21 @@ local TweenService = game:GetService("TweenService")
 local RebirthConfig = require(ReplicatedStorage.Shared.config.RebirthConfig)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 
--- Подгрузка темы и компонентов UI Kit
-local Theme = require(script.Parent.ui.theme.Theme)
-local Button = require(script.Parent.ui.components.Button)
-local Panel = require(script.Parent.ui.components.Panel)
-local UIManager = require(script.Parent.ui.UIManager)
+local Theme = require(script.Parent.Parent.theme.Theme)
+local Button = require(script.Parent.Parent.components.Button)
+local Panel = require(script.Parent.Parent.components.Panel)
+local UIManager = require(script.Parent.Parent.UIManager)
 
 local player = Players.LocalPlayer
 local requestRebirthEvent = Remotes.getEvent("RequestRebirth")
 
+local RebirthWindow = {}
 local rebirthPanel = nil
 local rebirthsLabel = nil
 local multiplierLabel = nil
 local costLabel = nil
 local actionButton = nil
 
--- Вспомогательная функция форматирования чисел
 local function formatNumber(value: number): string
 	local formatted = tostring(value)
 	while true do  
@@ -34,7 +33,6 @@ local function formatNumber(value: number): string
 	return formatted
 end
 
--- Обновление данных о перерождении
 local function updateRebirthUI()
 	if not rebirthPanel then return end
 
@@ -48,7 +46,6 @@ local function updateRebirthUI()
 	multiplierLabel.Text = string.format("Множитель монет: x%.1f", multiplier)
 	costLabel.Text = string.format("Цена следующего перерождения: $%s", formatNumber(cost))
 
-	-- Обновляем кнопку действия
 	if actionButton then
 		actionButton.Destroy()
 		actionButton = nil
@@ -64,7 +61,56 @@ local function updateRebirthUI()
 		Parent = rebirthPanel.Content,
 		OnClick = function()
 			if canAfford then
-				requestRebirthEvent:FireServer()
+				-- Всплывающий диалог "Точно?"
+				local confirmFrame = Instance.new("Frame")
+				confirmFrame.Size = UDim2.new(0, 240, 0, 120)
+				confirmFrame.Position = UDim2.new(0.5, -120, 0.5, -60)
+				confirmFrame.BackgroundColor3 = Theme.Colors.Background
+				confirmFrame.ZIndex = 300
+				confirmFrame.Parent = UIManager.getScreenGui()
+
+				local crn = Instance.new("UICorner")
+				crn.CornerRadius = Theme.Sizes.CornerRadius
+				crn.Parent = confirmFrame
+
+				local strk = Instance.new("UIStroke")
+				strk.Thickness = Theme.Sizes.BorderWidth
+				strk.Color = Theme.Colors.Warning
+				strk.Parent = confirmFrame
+
+				local lbl = Instance.new("TextLabel")
+				lbl.Size = UDim2.new(1, -20, 0, 40)
+				lbl.Position = UDim2.new(0, 10, 0, 15)
+				lbl.BackgroundTransparency = 1
+				lbl.Font = Theme.Fonts.Title
+				lbl.TextSize = 13
+				lbl.TextColor3 = Theme.Colors.Text
+				lbl.Text = "Вы уверены? Это сбросит монеты!"
+				lbl.Parent = confirmFrame
+
+				local yesBtn = Button.create({
+					Text = "ДА",
+					Color = Theme.Colors.Success,
+					Size = UDim2.new(0, 80, 0, 32),
+					Position = UDim2.new(0.15, 0, 0.6, 10),
+					Parent = confirmFrame,
+					OnClick = function()
+						requestRebirthEvent:FireServer()
+						confirmFrame:Destroy()
+						rebirthPanel.Close()
+					end
+				})
+
+				local noBtn = Button.create({
+					Text = "НЕТ",
+					Color = Theme.Colors.Error,
+					Size = UDim2.new(0, 80, 0, 32),
+					Position = UDim2.new(0.55, 0, 0.6, 10),
+					Parent = confirmFrame,
+					OnClick = function()
+						confirmFrame:Destroy()
+					end
+				})
 			else
 				UIManager.ShowToast(string.format("Не хватает монет для перерождения! Нужно: $%s", formatNumber(cost)), "Error")
 			end
@@ -72,11 +118,9 @@ local function updateRebirthUI()
 	})
 end
 
--- Инициализация UI
-local function init()
+function RebirthWindow.init()
 	local screenGui = UIManager.getScreenGui()
 
-	-- Создаем премиум-панель
 	rebirthPanel = Panel.create({
 		Title = "ПЕРЕРОЖДЕНИЕ",
 		Size = UDim2.new(0, 360, 0, 270),
@@ -87,12 +131,9 @@ local function init()
 		end
 	})
 
-	-- Регистрируем в менеджере
 	UIManager.registerWindow("Rebirth", rebirthPanel)
 
-	-- Пояснительный текст
 	local desc = Instance.new("TextLabel")
-	desc.Name = "DescLabel"
 	desc.Size = UDim2.new(1, -40, 0, 45)
 	desc.Position = UDim2.new(0, 20, 0, 10)
 	desc.BackgroundTransparency = 1
@@ -100,12 +141,10 @@ local function init()
 	desc.TextSize = 13
 	desc.TextColor3 = Theme.Colors.TextSecondary
 	desc.TextWrapped = true
-	desc.Text = "Сбрасывает ваши монеты, локации и уровни улучшений в обмен на постоянный множитель монет!"
+	desc.Text = "Сбрасывает монеты, локации и уровни улучшений в обмен на постоянный множитель монет!"
 	desc.Parent = rebirthPanel.Content
 
-	-- Статистика: текущие ребирхи
 	rebirthsLabel = Instance.new("TextLabel")
-	rebirthsLabel.Name = "RebirthsLabel"
 	rebirthsLabel.Size = UDim2.new(1, -40, 0, 25)
 	rebirthsLabel.Position = UDim2.new(0, 20, 0, 65)
 	rebirthsLabel.BackgroundTransparency = 1
@@ -115,9 +154,7 @@ local function init()
 	rebirthsLabel.Text = "Текущие перерождения: 0"
 	rebirthsLabel.Parent = rebirthPanel.Content
 
-	-- Множитель монет
 	multiplierLabel = Instance.new("TextLabel")
-	multiplierLabel.Name = "MultiplierLabel"
 	multiplierLabel.Size = UDim2.new(1, -40, 0, 25)
 	multiplierLabel.Position = UDim2.new(0, 20, 0, 90)
 	multiplierLabel.BackgroundTransparency = 1
@@ -127,9 +164,7 @@ local function init()
 	multiplierLabel.Text = "Множитель монет: x1.0"
 	multiplierLabel.Parent = rebirthPanel.Content
 
-	-- Цена следующего
 	costLabel = Instance.new("TextLabel")
-	costLabel.Name = "CostLabel"
 	costLabel.Size = UDim2.new(1, -40, 0, 25)
 	costLabel.Position = UDim2.new(0, 20, 0, 115)
 	costLabel.BackgroundTransparency = 1
@@ -139,12 +174,12 @@ local function init()
 	costLabel.Text = "Цена следующего перерождения: $10,000"
 	costLabel.Parent = rebirthPanel.Content
 
-	-- Слушаем изменения монет и ребирхов
 	player:GetAttributeChangedSignal("Money"):Connect(updateRebirthUI)
 	player:GetAttributeChangedSignal("Rebirths"):Connect(updateRebirthUI)
 
 	updateRebirthUI()
 end
 
-init()
-print("[REBIRTH UI] Интерфейс перерождений успешно загружен!")
+RebirthWindow.init()
+
+return RebirthWindow

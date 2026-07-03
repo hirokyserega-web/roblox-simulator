@@ -1,20 +1,19 @@
--- Клиентский UI Настроек (Settings UI)
+-- Окно Настроек (SettingsWindow)
 local Players = game:GetService("Players")
 
--- Подгрузка темы и компонентов UI Kit
-local Theme = require(script.Parent.ui.theme.Theme)
-local Button = require(script.Parent.ui.components.Button)
-local Panel = require(script.Parent.ui.components.Panel)
-local UIManager = require(script.Parent.ui.UIManager)
+local Theme = require(script.Parent.Parent.theme.Theme)
+local Button = require(script.Parent.Parent.components.Button)
+local Panel = require(script.Parent.Parent.components.Panel)
+local UIManager = require(script.Parent.Parent.UIManager)
 
 local player = Players.LocalPlayer
 
+local SettingsWindow = {}
 local settingsPanel = nil
 local musicToggle = nil
 local soundsToggle = nil
 local particlesToggle = nil
 
--- Состояния настроек
 local settingsStates = {
 	Music = true,
 	Sounds = true,
@@ -26,7 +25,6 @@ local function updateToggle(name: string, buttonComp: table)
 	local text = string.format("%s: %s", name == "Music" and "Музыка" or (name == "Sounds" and "Звуки" or "Частицы"), state and "ВКЛ" or "ВЫКЛ")
 	local color = state and Theme.Colors.Success or Theme.Colors.Error
 	
-	-- Меняем визуальное состояние кнопки
 	local top = buttonComp.Instance:FindFirstChild("ButtonTop")
 	if top then
 		top.Text = text
@@ -34,11 +32,9 @@ local function updateToggle(name: string, buttonComp: table)
 	end
 end
 
--- Инициализация
-local function init()
+function SettingsWindow.init()
 	local screenGui = UIManager.getScreenGui()
 
-	-- Создаем премиум-панель настроек
 	settingsPanel = Panel.create({
 		Title = "НАСТРОЙКИ ИГРЫ",
 		Size = UDim2.new(0, 300, 0, 260),
@@ -57,7 +53,6 @@ local function init()
 	listLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 	listLayout.Parent = settingsPanel.Content
 
-	-- Музыка
 	musicToggle = Button.create({
 		Text = "Музыка: ВКЛ",
 		Color = Theme.Colors.Success,
@@ -70,7 +65,6 @@ local function init()
 		end
 	})
 
-	-- Звуки
 	soundsToggle = Button.create({
 		Text = "Звуки: ВКЛ",
 		Color = Theme.Colors.Success,
@@ -83,7 +77,6 @@ local function init()
 		end
 	})
 
-	-- Эффекты/частицы
 	particlesToggle = Button.create({
 		Text = "Частицы: ВКЛ",
 		Color = Theme.Colors.Success,
@@ -101,5 +94,6 @@ local function init()
 	updateToggle("Particles", particlesToggle)
 end
 
-init()
-print("[SETTINGS UI] Интерфейс настроек успешно загружен!")
+SettingsWindow.init()
+
+return SettingsWindow

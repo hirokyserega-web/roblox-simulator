@@ -1,26 +1,24 @@
--- Клиентский UI Телепортации по локациям (Teleport UI)
+-- Окно Телепортации (TeleportWindow)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
 
 local LocationConfig = require(ReplicatedStorage.Shared.config.LocationConfig)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 
--- Подгрузка темы и компонентов UI Kit
-local Theme = require(script.Parent.ui.theme.Theme)
-local Button = require(script.Parent.ui.components.Button)
-local Panel = require(script.Parent.ui.components.Panel)
-local UIManager = require(script.Parent.ui.UIManager)
+local Theme = require(script.Parent.Parent.theme.Theme)
+local Button = require(script.Parent.Parent.components.Button)
+local Panel = require(script.Parent.Parent.components.Panel)
+local UIManager = require(script.Parent.Parent.UIManager)
 
 local player = Players.LocalPlayer
 local teleportRequest = Remotes.getEvent("TeleportRequest")
 local buyZoneRequest = Remotes.getEvent("BuyZoneRequest")
 
+local TeleportWindow = {}
 local teleportPanel = nil
 local scrollingFrame = nil
 local zoneRows = {}
 
--- Вспомогательная функция форматирования чисел
 local function formatNumber(value: number): string
 	local formatted = tostring(value)
 	while true do  
@@ -33,7 +31,6 @@ local function formatNumber(value: number): string
 	return formatted
 end
 
--- Обновление строки конкретной локации
 local function updateZoneRow(zoneId: string)
 	local row = zoneRows[zoneId]
 	if not row then return end
@@ -42,7 +39,6 @@ local function updateZoneRow(zoneId: string)
 	local isUnlocked = (zoneId == "StarterArea") or (player:GetAttribute("Unlocked_" .. zoneId) == true)
 	local currentMoney = player:GetAttribute("Money") or 0
 
-	-- Очищаем старую кнопку действия
 	if row.ActionButton then
 		row.ActionButton.Destroy()
 		row.ActionButton = nil
@@ -87,18 +83,15 @@ local function updateZoneRow(zoneId: string)
 	end
 end
 
--- Обновление всех строк при изменении баланса/статуса
 local function updateAllZones()
 	for zoneId, _ in pairs(LocationConfig) do
 		updateZoneRow(zoneId)
 	end
 end
 
--- Инициализация UI
-local function init()
+function TeleportWindow.init()
 	local screenGui = UIManager.getScreenGui()
 
-	-- Создаем премиум-панель телепортов
 	teleportPanel = Panel.create({
 		Title = "ТЕЛЕПОРТАЦИЯ",
 		Size = UDim2.new(0, 380, 0, 300),
@@ -111,7 +104,6 @@ local function init()
 
 	UIManager.registerWindow("Teleport", teleportPanel)
 
-	-- Скролл для локаций
 	scrollingFrame = Instance.new("ScrollingFrame")
 	scrollingFrame.Size = UDim2.new(1, 0, 1, -10)
 	scrollingFrame.Position = UDim2.new(0, 0, 0, 5)
@@ -125,7 +117,6 @@ local function init()
 	listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	listLayout.Parent = scrollingFrame
 
-	-- Сортируем локации по цене
 	local sortedZones = {}
 	for zoneId, config in pairs(LocationConfig) do
 		table.insert(sortedZones, { Id = zoneId, Cost = config.Cost, Name = config.DisplayName })
@@ -151,7 +142,6 @@ local function init()
 		stroke.Color = Theme.Colors.Stroke
 		stroke.Parent = rowFrame
 
-		-- Название зоны
 		local nameLabel = Instance.new("TextLabel")
 		nameLabel.Size = UDim2.new(0, 160, 0, 22)
 		nameLabel.Position = UDim2.new(0, 12, 0, 6)
@@ -163,7 +153,6 @@ local function init()
 		nameLabel.Text = item.Name
 		nameLabel.Parent = rowFrame
 
-		-- Статус / Цена
 		local statusLabel = Instance.new("TextLabel")
 		statusLabel.Size = UDim2.new(0, 160, 0, 20)
 		statusLabel.Position = UDim2.new(0, 12, 1, -24)
@@ -182,7 +171,6 @@ local function init()
 
 	scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, #sortedZones * 66)
 
-	-- Слушаем обновления денег и параметров разблокировки
 	player:GetAttributeChangedSignal("Money"):Connect(updateAllZones)
 	for zoneId, _ in pairs(LocationConfig) do
 		player:GetAttributeChangedSignal("Unlocked_" .. zoneId):Connect(function()
@@ -193,5 +181,6 @@ local function init()
 	updateAllZones()
 end
 
-init()
-print("[TELEPORT UI] Интерфейс телепортов успешно загружен!")
+TeleportWindow.init()
+
+return TeleportWindow

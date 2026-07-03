@@ -1,4 +1,4 @@
--- Клиентский UI Магазина улучшений (Shop UI)
+-- Окно Магазина Улучшений (ShopWindow)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
@@ -6,21 +6,21 @@ local TweenService = game:GetService("TweenService")
 local UpgradeConfig = require(ReplicatedStorage.Shared.config.UpgradeConfig)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 
--- Подгрузка темы и компонентов UI Kit
-local Theme = require(script.Parent.ui.theme.Theme)
-local Button = require(script.Parent.ui.components.Button)
-local Panel = require(script.Parent.ui.components.Panel)
-local ProgressBar = require(script.Parent.ui.components.ProgressBar)
-local UIManager = require(script.Parent.ui.UIManager)
+local Theme = require(script.Parent.Parent.theme.Theme)
+local Button = require(script.Parent.Parent.components.Button)
+local Panel = require(script.Parent.Parent.components.Panel)
+local ProgressBar = require(script.Parent.Parent.components.ProgressBar)
+local UIManager = require(script.Parent.Parent.UIManager)
 
 local player = Players.LocalPlayer
 local buyUpgradeEvent = Remotes.getEvent("BuyUpgrade")
 
+local ShopWindow = {}
 local shopPanel = nil
 local scrollingFrame = nil
-local upgradeItems = {} -- Список строк для каждого улучшения
+local upgradeItems = {}
 
--- Вспомогательная функция форматирования чисел
+-- Форматирование чисел
 local function formatNumber(value: number): string
 	local formatted = tostring(value)
 	while true do  
@@ -33,7 +33,7 @@ local function formatNumber(value: number): string
 	return formatted
 end
 
--- Обновление строки конкретного улучшения
+-- Обновление строки улучшения
 local function updateUpgradeRow(upgradeType: string)
 	local row = upgradeItems[upgradeType]
 	if not row then return end
@@ -45,14 +45,12 @@ local function updateUpgradeRow(upgradeType: string)
 	row.LevelLabel.Text = string.format("Ур. %d / %d", level, config.MaxLevel)
 	row.ProgressBar.SetProgress(level / config.MaxLevel)
 
-	-- Очищаем старую кнопку
 	if row.BuyButton then
 		row.BuyButton.Destroy()
 		row.BuyButton = nil
 	end
 
 	if level >= config.MaxLevel then
-		-- Золотая кнопка MAX
 		row.BuyButton = Button.create({
 			Text = "MAX",
 			Color = Color3.fromHex("FF9F1C"),
@@ -78,7 +76,7 @@ local function updateUpgradeRow(upgradeType: string)
 					buyUpgradeEvent:FireServer(upgradeType)
 				else
 					UIManager.ShowToast("Не хватает денег для улучшения!", "Error")
-					-- Эффект дрожания кнопки при неудаче
+					-- Тряска при ошибке
 					local origPos = UDim2.new(1, -100, 0.5, -18)
 					local shakePos = UDim2.new(1, -95, 0.5, -18)
 					task.spawn(function()
@@ -92,18 +90,16 @@ local function updateUpgradeRow(upgradeType: string)
 	end
 end
 
--- Обновление всех улучшений при смене денег/уровней
 local function updateAllRows()
 	for upgradeType, _ in pairs(UpgradeConfig) do
 		updateUpgradeRow(upgradeType)
 	end
 end
 
--- Инициализация UI
-local function init()
+-- Инициализация и авторегистрация
+function ShopWindow.init()
 	local screenGui = UIManager.getScreenGui()
 
-	-- Создаем премиум-панель
 	shopPanel = Panel.create({
 		Title = "МАГАЗИН УЛУЧШЕНИЙ",
 		Size = UDim2.new(0, 420, 0, 340),
@@ -114,10 +110,8 @@ local function init()
 		end
 	})
 
-	-- Регистрируем в глобальном UIManager
 	UIManager.registerWindow("Shop", shopPanel)
 
-	-- Скролл для списка апгрейдов
 	scrollingFrame = Instance.new("ScrollingFrame")
 	scrollingFrame.Size = UDim2.new(1, 0, 1, 0)
 	scrollingFrame.BackgroundTransparency = 1
@@ -130,14 +124,12 @@ local function init()
 	listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	listLayout.Parent = scrollingFrame
 
-	-- Список доступных апгрейдов по конфигу
 	local upgradesList = { "WalkSpeed", "BagCapacity", "DetectorRadius", "CaptureSpeed" }
 
-	for i, upgradeType in ipairs(upgradesList) do
+	for _, upgradeType in ipairs(upgradesList) do
 		local config = UpgradeConfig[upgradeType]
 		if not config then continue end
 
-		-- Фоновая полоска строки
 		local rowFrame = Instance.new("Frame")
 		rowFrame.Name = "Row_" .. upgradeType
 		rowFrame.Size = UDim2.new(1, -12, 0, 60)
@@ -154,7 +146,6 @@ local function init()
 		rowStroke.Color = Theme.Colors.Stroke
 		rowStroke.Parent = rowFrame
 
-		-- Название апгрейда
 		local nameLabel = Instance.new("TextLabel")
 		nameLabel.Size = UDim2.new(0, 180, 0, 25)
 		nameLabel.Position = UDim2.new(0, 12, 0, 6)
@@ -166,7 +157,6 @@ local function init()
 		nameLabel.Text = config.DisplayName
 		nameLabel.Parent = rowFrame
 
-		-- Уровень
 		local lvlLabel = Instance.new("TextLabel")
 		lvlLabel.Size = UDim2.new(0, 180, 0, 20)
 		lvlLabel.Position = UDim2.new(0, 12, 0, 32)
@@ -175,10 +165,9 @@ local function init()
 		lvlLabel.TextSize = 11
 		lvlLabel.TextColor3 = Theme.Colors.TextSecondary
 		lvlLabel.TextXAlignment = Enum.TextXAlignment.Left
-		lvlLabel.Text = "Ур. 1 / " .. config.MaxLevel
+		lvlLabel.Text = "Ур. 1"
 		lvlLabel.Parent = rowFrame
 
-		-- Прогресс-бар уровней
 		local pBar = ProgressBar.create({
 			Size = UDim2.new(0, 100, 0, 8),
 			Position = UDim2.new(0, 110, 0.5, 6),
@@ -186,7 +175,6 @@ local function init()
 			Parent = rowFrame
 		})
 
-		-- Запоминаем элементы для последующих обновлений
 		upgradeItems[upgradeType] = {
 			Frame = rowFrame,
 			LevelLabel = lvlLabel,
@@ -197,7 +185,6 @@ local function init()
 
 	scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, #upgradesList * 72)
 
-	-- Слушаем изменения баланса и характеристик
 	player:GetAttributeChangedSignal("Money"):Connect(updateAllRows)
 	for _, upType in ipairs(upgradesList) do
 		player:GetAttributeChangedSignal(upType .. "Lvl"):Connect(function()
@@ -208,5 +195,7 @@ local function init()
 	updateAllRows()
 end
 
-init()
-print("[SHOP UI] UI магазина успешно загружен!")
+-- Автозапуск инициализации
+ShopWindow.init()
+
+return ShopWindow
