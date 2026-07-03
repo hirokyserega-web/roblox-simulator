@@ -1,10 +1,13 @@
 -- Точка входа сервера для Ghost Hunter Simulator
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local Workspace = game:GetService("Workspace")
 
 local GameConfig = require(ReplicatedStorage.Shared.config.GameConfig)
 local GhostSpawner = require(ServerScriptService.Server.GhostSpawner)
+local InventoryService = require(ServerScriptService.Server.InventoryService)
+local CaptureService = require(ServerScriptService.Server.CaptureService)
 
 print("Server started")
 
@@ -46,7 +49,17 @@ end
 -- Инициализация систем
 local function init()
 	local spawnZone = getOrCreateSpawnZone()
+	
+	-- Запуск спавнера
 	GhostSpawner.start(spawnZone)
+	
+	-- Запуск сервиса поимки
+	CaptureService.init()
+	
+	-- Слушаем выход игроков для очистки памяти
+	Players.PlayerRemoving:Connect(function(player)
+		InventoryService.removePlayer(player)
+	end)
 end
 
 init()
