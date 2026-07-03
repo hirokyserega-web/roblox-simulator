@@ -23,24 +23,37 @@ local function applyWalkSpeed(player: Player, level: number)
 end
 
 -- Инициализация апгрейдов игрока при входе
-function UpgradeService.setupPlayer(player: Player)
+function UpgradeService.setupPlayer(player: Player, loadedData: table?)
 	local userId = player.UserId
 	
+	local bagLvl = 1
+	local speedLvl = 1
+	local detLvl = 1
+	local capLvl = 1
+	
+	if loadedData and loadedData.Upgrades then
+		local upg = loadedData.Upgrades
+		if upg.BagCapacity then bagLvl = upg.BagCapacity end
+		if upg.WalkSpeed then speedLvl = upg.WalkSpeed end
+		if upg.DetectorRadius then detLvl = upg.DetectorRadius end
+		if upg.CaptureSpeed then capLvl = upg.CaptureSpeed end
+	end
+	
 	playerUpgrades[userId] = {
-		BagCapacity = 1,
-		WalkSpeed = 1,
-		DetectorRadius = 1,
-		CaptureSpeed = 1
+		BagCapacity = bagLvl,
+		WalkSpeed = speedLvl,
+		DetectorRadius = detLvl,
+		CaptureSpeed = capLvl
 	}
 
 	-- Выставляем атрибуты уровней для клиента
-	player:SetAttribute("BagCapacityLvl", 1)
-	player:SetAttribute("WalkSpeedLvl", 1)
-	player:SetAttribute("DetectorRadiusLvl", 1)
-	player:SetAttribute("CaptureSpeedLvl", 1)
+	player:SetAttribute("BagCapacityLvl", bagLvl)
+	player:SetAttribute("WalkSpeedLvl", speedLvl)
+	player:SetAttribute("DetectorRadiusLvl", detLvl)
+	player:SetAttribute("CaptureSpeedLvl", capLvl)
 
 	-- Выставляем вместимость инвентаря
-	local initialCapacity = UpgradeConfig.BagCapacity.Levels[1].Value
+	local initialCapacity = UpgradeConfig.BagCapacity.Levels[bagLvl].Value
 	InventoryService.setMaxCapacity(player, initialCapacity)
 
 	-- Отслеживаем спавн персонажа для переприменения скорости бега
@@ -55,7 +68,7 @@ function UpgradeService.setupPlayer(player: Player)
 
 	-- Если персонаж уже загрузился
 	if player.Character then
-		applyWalkSpeed(player, 1)
+		applyWalkSpeed(player, speedLvl)
 	end
 end
 

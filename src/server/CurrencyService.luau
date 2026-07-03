@@ -6,13 +6,21 @@ local CurrencyService = {}
 local balances = {} -- Ключ: UserId, Значение: { Money = X, Crystals = Y }
 
 -- Инициализация лидерборда и валют при входе игрока
-function CurrencyService.setupPlayer(player: Player)
+function CurrencyService.setupPlayer(player: Player, loadedData: table?)
 	local userId = player.UserId
 	
-	-- Устанавливаем стартовый баланс
+	-- Устанавливаем стартовый или загруженный баланс
+	local moneyVal = GameConfig.StartingMoney
+	local crystalsVal = GameConfig.StartingCrystals
+	
+	if loadedData then
+		if loadedData.Money then moneyVal = loadedData.Money end
+		if loadedData.Crystals then crystalsVal = loadedData.Crystals end
+	end
+	
 	balances[userId] = {
-		Money = GameConfig.StartingMoney,
-		Crystals = GameConfig.StartingCrystals
+		Money = moneyVal,
+		Crystals = crystalsVal
 	}
 
 	-- 1. Лидерборд для отображения в стандартной таблице игроков

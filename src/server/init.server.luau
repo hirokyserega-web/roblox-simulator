@@ -12,6 +12,7 @@ local CaptureService = require(ServerScriptService.Server.CaptureService)
 local CurrencyService = require(ServerScriptService.Server.CurrencyService)
 local SellService = require(ServerScriptService.Server.SellService)
 local UpgradeService = require(ServerScriptService.Server.UpgradeService)
+local DataService = require(ServerScriptService.Server.DataService)
 
 print("Server started")
 
@@ -58,6 +59,9 @@ local function init()
 	SellService.init()
 	UpgradeService.init()
 	
+	-- Инициализация системы сохранения
+	DataService.init()
+	
 	-- Запуск спавнера
 	GhostSpawner.start(spawnZone)
 	
@@ -66,8 +70,12 @@ local function init()
 	
 	-- Настройка игрока при входе
 	local function onPlayerAdded(player: Player)
-		CurrencyService.setupPlayer(player)
-		UpgradeService.setupPlayer(player)
+		-- Загружаем данные из DataStore
+		local loadedData = DataService.loadData(player)
+		
+		-- Инициализируем валюту и улучшения на основе загруженных данных
+		CurrencyService.setupPlayer(player, loadedData)
+		UpgradeService.setupPlayer(player, loadedData)
 		
 		-- Синхронизируем пустой стартовый инвентарь
 		local inventoryUpdateEvent = Remotes.getEvent("InventoryUpdate")
@@ -79,8 +87,11 @@ local function init()
 		task.spawn(onPlayerAdded, player)
 	end
 
-	-- Слушаем выход игроков для очистки памяти
+	-- Слушаем выход игроков для сохранения и очистки памяти
 	Players.PlayerRemoving:Connect(function(player)
+		-- Сохраняем данные игрока перед его выходом
+		DataService.saveData(player)
+		
 		InventoryService.removePlayer(player)
 		CurrencyService.removePlayer(player)
 		UpgradeService.removePlayer(player)
