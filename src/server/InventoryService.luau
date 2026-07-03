@@ -1,144 +1,126 @@
--- Сервис управления инвентарем игрока на сервере (в оперативной памяти)
+-- Сервис управления инвентарем (Bag) игрока на сервере
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GameConfig = require(ReplicatedStorage.Shared.config.GameConfig)
 local GhostConfig = require(ReplicatedStorage.Shared.config.GhostConfig)
+local Remotes = require(ReplicatedStorage.Shared.Remotes)
 
 local InventoryService = {}
 local inventories = {} -- Ключ: UserId, Значение: { Ghosts = { "Common", ... }, MaxCapacity = X }
 
--- Создать физический инструмент призрака в рюкзаке игрока
-local function createGhostTool(player: Player, rarity: string)
+-- Создать физический инструмент призрака
+local function createGhostTool(player, rarity)
 	local conf = GhostConfig[rarity]
 	if not conf then return end
-
+	
 	local tool = Instance.new("Tool")
 	tool.Name = conf.Name
+	tool.ToolTip = "Редкость: " .. rarity
 	tool.RequiresHandle = true
-	tool:SetAttribute("Rarity", rarity)
+	tool.CanBeDropped = false
+	
+	-- Атрибуты для идентификации
 	tool:SetAttribute("IsGhost", true)
-
+	tool:SetAttribute("Rarity", rarity)
+	
 	local handle = Instance.new("Part")
 	handle.Name = "Handle"
 	handle.Size = Vector3.new(1.2, 1.2, 1.2)
 	handle.Shape = Enum.PartType.Ball
+	handle.Color = conf.Color or Color3.new(1, 1, 1)
 	handle.Material = Enum.Material.Neon
-	handle.CanCollide = false
-	handle.Color = conf.Color
+	handle.Transparency = 0.3
 	handle.Parent = tool
-
-	-- Добавим красивый ParticleEmitter в Handle
+	
+	-- Эффект свечения
+	local attachment = Instance.new("Attachment")
+	attachment.Parent = handle
+	
 	local particles = Instance.new("ParticleEmitter")
-	particles.Color = ColorSequence.new(conf.Color)
-	particles.Size = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 0.4),
-		NumberSequenceKeypoint.new(1, 0)
-	})
-	particles.Transparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 0.2),
-		NumberSequenceKeypoint.new(1, 1)
-	})
-	particles.Lifetime = NumberRange.new(0.5, 1.2)
-	particles.Speed = NumberRange.new(1, 3)
-	particles.SpreadAngle = Vector2.new(-180, 180)
+	particles.Color = ColorSequence.new(handle.Color)
+	particles.Size = NumberSequence.new(0.5, 0)
+	particles.Transparency = NumberSequence.new(0.5, 1)
+	particles.Lifetime = NumberRange.new(0.5, 1)
+	particles.Rate = 20
+	particles.Speed = NumberRange.new(1, 2)
 	particles.Parent = handle
-
-	-- Добавим BillboardGui над призраком
-	local billboard = Instance.new("BillboardGui")
-	billboard.Name = "GhostTag"
-	billboard.Size = UDim2.new(0, 150, 0, 40)
-	billboard.StudsOffset = Vector3.new(0, 2, 0)
-	billboard.AlwaysOnTop = true
-	billboard.Parent = handle
-
-	local textLabel = Instance.new("TextLabel")
-	textLabel.Size = UDim2.new(1, 0, 1, 0)
-	textLabel.BackgroundTransparency = 1
-	textLabel.Font = Enum.Font.FredokaOne
-	textLabel.TextSize = 14
-	textLabel.TextColor3 = conf.Color
-	textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-	textLabel.TextStrokeTransparency = 0.2
-	textLabel.Text = "👻 " .. conf.Name .. " 👻"
-	textLabel.Parent = billboard
-
+	
 	tool.Parent = player.Backpack
+	return tool
 end
 
--- Инициализировать или получить инвентарь игрока
-function InventoryService.getInventory(player: Player)
+-- Настройка при входе
+function InventoryService.setupPlayer(player: Player, loadedGhosts: {string}?)
 	local userId = player.UserId
-	if not inventories[userId] then
-		inventories[userId] = {
-			Ghosts = {},
-			MaxCapacity = GameConfig.DefaultBagCapacity
-		}
-	end
-	return inventories[userId]
-end
-
--- Добавить призрака в инвентарь (возвращает true при успехе, false если рюкзак полон)
-function InventoryService.addGhost(player: Player, rarity: string): boolean
-	local inv = InventoryService.getInventory(player)
-	if #inv.Ghosts < inv.MaxCapacity then
-		table.insert(inv.Ghosts, rarity)
-		
-		-- Создаем физический инструмент призрака
+	inventories[userId] = {
+		Ghosts = loadedGhosts or {},
+		MaxCapacity = player:GetAttribute("BagCapacity") or GameConfig.DefaultBagCapacity or 10
+	}
+	
+	-- Создаем инструменты для загруженных призраков
+	for _, rarity in ipairs(inventories[userId].Ghosts) do
 		createGhostTool(player, rarity)
-		
-		return true
 	end
-	return false
+	
+	Remotes.getEvent("InventoryUpdate"):FireClient(player, inventories[userId])
 end
 
--- Очистить рюкзак и вернуть список привидений
-function InventoryService.clearInventory(player: Player): {string}
-	local inv = InventoryService.getInventory(player)
-	local clearedGhosts = inv.Ghosts
+-- Получение данных для сохранения
+function InventoryService.getSaveData(player: Player)
+	local inv = inventories[player.UserId]
+	return inv and inv.Ghosts or {}
+end
+
+-- Добавить призрака
+function InventoryService.addGhost(player: Player, rarity: string): boolean
+	local userId = player.UserId
+	local inv = inventories[userId]
+	if not inv then return false end
+	
+	if #inv.Ghosts >= inv.MaxCapacity then
+		return false
+	end
+	
+	table.insert(inv.Ghosts, rarity)
+	createGhostTool(player, rarity)
+	
+	Remotes.getEvent("InventoryUpdate"):FireClient(player, inv)
+	return true
+end
+
+-- Очистить инвентарь (продажа)
+function InventoryService.clearInventory(player: Player)
+	local userId = player.UserId
+	local inv = inventories[userId]
+	if not inv then return end
+	
 	inv.Ghosts = {}
 	
-	-- Удалить физические инструменты призраков у игрока (в Backpack и Character)
-	local character = player.Character
-	if character then
-		for _, child in ipairs(character:GetChildren()) do
+	-- Удаляем инструменты
+	for _, child in ipairs(player.Backpack:GetChildren()) do
+		if child:IsA("Tool") and child:GetAttribute("IsGhost") then
+			child:Destroy()
+		end
+	end
+	local char = player.Character
+	if char then
+		for _, child in ipairs(char:GetChildren()) do
 			if child:IsA("Tool") and child:GetAttribute("IsGhost") then
 				child:Destroy()
 			end
 		end
 	end
 	
-	local backpack = player.Backpack
-	if backpack then
-		for _, child in ipairs(backpack:GetChildren()) do
-			if child:IsA("Tool") and child:GetAttribute("IsGhost") then
-				child:Destroy()
-			end
-		end
-	end
-
-	return clearedGhosts
+	Remotes.getEvent("InventoryUpdate"):FireClient(player, inv)
 end
 
--- Проверка, заполнен ли рюкзак
-function InventoryService.isFull(player: Player): boolean
-	local inv = InventoryService.getInventory(player)
-	return #inv.Ghosts >= inv.MaxCapacity
-end
-
--- Получить текущее количество привидений в рюкзаке
-function InventoryService.getGhostsCount(player: Player): number
-	local inv = InventoryService.getInventory(player)
-	return #inv.Ghosts
-end
-
--- Установить максимальную вместимость рюкзака
-function InventoryService.setMaxCapacity(player: Player, capacity: number)
-	local inv = InventoryService.getInventory(player)
-	inv.MaxCapacity = capacity
-end
-
--- Очистка памяти при выходе игрока
-function InventoryService.removePlayer(player: Player)
-	inventories[player.UserId] = nil
+-- Получить текущий инвентарь
+function InventoryService.getInventory(player: Player)
+	return inventories[player.UserId]
 end
 
 return InventoryService
+
+-- Регистрация RemoteFunction для получения данных клиентом
+Remotes.getFunction("GetInventoryData").OnServerInvoke = function(player)
+	return InventoryService.getInventory(player)
+end
