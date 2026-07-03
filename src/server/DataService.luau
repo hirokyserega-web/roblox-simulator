@@ -75,6 +75,10 @@ function DataService.saveData(player: Player)
 			WalkSpeed = player:GetAttribute("WalkSpeedLvl") or 1,
 			DetectorRadius = player:GetAttribute("DetectorRadiusLvl") or 1,
 			CaptureSpeed = player:GetAttribute("CaptureSpeedLvl") or 1
+		},
+		Locations = {
+			ForestArea = player:GetAttribute("Unlocked_ForestArea") or false,
+			MansionArea = player:GetAttribute("Unlocked_MansionArea") or false
 		}
 	}
 

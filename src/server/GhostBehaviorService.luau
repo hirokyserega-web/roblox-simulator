@@ -1,4 +1,4 @@
--- Сервис управления поведением призраков на сервере (ИИ)
+-- Сервис управления поведением призраков на сервере (ИИ) с поддержкой зональных лимитов
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
@@ -11,14 +11,14 @@ local InventoryService = require(script.Parent.InventoryService)
 
 local GhostBehaviorService = {}
 local spawnedGhostsFolder = nil
-local spawnZone = nil
+local locationsFolder = nil
 local active = false
 
--- Вспомогательная функция телепортации призрака в случайную точку зоны спавна
-local function teleportGhost(ghostPart: Part)
-	if not spawnZone then return end
-	local zoneSize = spawnZone.Size
-	local zonePos = spawnZone.Position
+-- Вспомогательная функция телепортации призрака в случайную точку его зоны спавна
+local function teleportGhost(ghostPart: Part, zonePart: Part)
+	if not zonePart then return end
+	local zoneSize = zonePart.Size
+	local zonePos = zonePart.Position
 	local randomX = zonePos.X + (math.random() - 0.5) * zoneSize.X
 	local randomZ = zonePos.Z + (math.random() - 0.5) * zoneSize.Z
 	local spawnY = zonePos.Y + (zoneSize.Y / 2) + (ghostPart.Size.Y / 2) + 1.5
@@ -29,10 +29,10 @@ end
 -- Инициализация сервиса поведения призраков
 function GhostBehaviorService.init()
 	spawnedGhostsFolder = Workspace:FindFirstChild("SpawnedGhosts")
-	spawnZone = Workspace:FindFirstChild("SpawnZone")
+	locationsFolder = Workspace:FindFirstChild("Locations")
 	
-	if not spawnedGhostsFolder or not spawnZone then
-		warn("[GHOST BEHAVIOR] Не найдены папка призраков или зона спавна в Workspace!")
+	if not spawnedGhostsFolder or not locationsFolder then
+		warn("[GHOST BEHAVIOR] Не найдены папка призраков или папка локаций в Workspace!")
 		return
 	end
 
@@ -63,14 +63,19 @@ function GhostBehaviorService.tick(dt: number)
 	local players = Players:GetPlayers()
 	if #players == 0 then return end
 
-	-- Границы зоны спавна для ограничения движения
-	local minX = spawnZone.Position.X - spawnZone.Size.X / 2
-	local maxX = spawnZone.Position.X + spawnZone.Size.X / 2
-	local minZ = spawnZone.Position.Z - spawnZone.Size.Z / 2
-	local maxZ = spawnZone.Position.Z + spawnZone.Size.Z / 2
-
 	for _, ghost in ipairs(ghosts) do
 		if not ghost:IsA("BasePart") then continue end
+
+		-- Считываем локацию призрака и находим её плиту
+		local zoneName = ghost:GetAttribute("SpawnZoneName") or "StarterArea"
+		local zonePart = locationsFolder:FindFirstChild("Zone_" .. zoneName)
+		if not zonePart then continue end
+
+		-- Границы зоны спавна для ограничения движения
+		local minX = zonePart.Position.X - zonePart.Size.X / 2
+		local maxX = zonePart.Position.X + zonePart.Size.X / 2
+		local minZ = zonePart.Position.Z - zonePart.Size.Z / 2
+		local maxZ = zonePart.Position.Z + zonePart.Size.Z / 2
 
 		-- Считываем атрибуты призрака
 		local behaviorType = ghost:GetAttribute("BehaviorType") or "Passive"
@@ -160,7 +165,7 @@ function GhostBehaviorService.tick(dt: number)
 					scareEvent:FireClient(nearestPlayer, "ATK")
 
 					-- Телепортируем призрака прочь, чтобы не стан-лочить игрока бесконечно
-					teleportGhost(ghost)
+					teleportGhost(ghost, zonePart)
 
 					-- Возвращаем скорость через 2 секунды
 					task.delay(2, function()
@@ -189,7 +194,7 @@ function GhostBehaviorService.tick(dt: number)
 				ghost:SetAttribute("LastTeleport", tick())
 				-- Шанс 30% телепортироваться, если рядом есть игрок (например, пытается поймать)
 				if minDistance < 25 and math.random() <= 0.3 then
-					teleportGhost(ghost)
+					teleportGhost(ghost, zonePart)
 					print("[GHOST BEHAVIOR] Призрак " .. ghost.Name .. " телепортировался!")
 				end
 			end

@@ -15,6 +15,7 @@ local UpgradeService = require(ServerScriptService.Server.UpgradeService)
 local DataService = require(ServerScriptService.Server.DataService)
 local LeaderboardService = require(ServerScriptService.Server.LeaderboardService)
 local GhostBehaviorService = require(ServerScriptService.Server.GhostBehaviorService)
+local LocationService = require(ServerScriptService.Server.LocationService)
 
 print("Server started")
 
@@ -55,23 +56,24 @@ end
 
 -- Инициализация систем
 local function init()
-	local spawnZone = getOrCreateSpawnZone()
-	
-	-- Инициализация игровой экономики, рынка и улучшений
+	-- Инициализация экономики, рынка и улучшений
 	SellService.init()
 	UpgradeService.init()
 	
-	-- Инициализация системы сохранения
+	-- Инициализация сохранения
 	DataService.init()
 	
-	-- Инициализация глобальной таблицы рекордов
+	-- Инициализация лидерборда
 	LeaderboardService.init()
 	
+	-- Инициализация логики локаций
+	LocationService.init()
+
 	-- Инициализация поведения призраков (ИИ)
 	GhostBehaviorService.init()
 	
-	-- Запуск спавнера
-	GhostSpawner.start(spawnZone)
+	-- Запуск спавнера с плитами всех локаций
+	GhostSpawner.start(LocationService.getZones())
 	
 	-- Запуск сервиса поимки
 	CaptureService.init()
@@ -84,6 +86,16 @@ local function init()
 		-- Инициализируем валюту и улучшения на основе загруженных данных
 		CurrencyService.setupPlayer(player, loadedData)
 		UpgradeService.setupPlayer(player, loadedData)
+
+		-- Инициализируем разблокированные локации
+		local forestUnlocked = false
+		local mansionUnlocked = false
+		if loadedData and loadedData.Locations then
+			forestUnlocked = loadedData.Locations.ForestArea or false
+			mansionUnlocked = loadedData.Locations.MansionArea or false
+		end
+		player:SetAttribute("Unlocked_ForestArea", forestUnlocked)
+		player:SetAttribute("Unlocked_MansionArea", mansionUnlocked)
 		
 		-- Синхронизируем пустой стартовый инвентарь
 		local inventoryUpdateEvent = Remotes.getEvent("InventoryUpdate")
