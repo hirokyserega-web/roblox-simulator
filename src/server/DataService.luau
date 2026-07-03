@@ -66,9 +66,11 @@ function DataService.saveData(player: Player)
 
 	local key = "Player_" .. player.UserId
 	
-		-- Собираем актуальные данные из атрибутов игрока, PetService и RebirthService
+		-- Собираем актуальные данные из атрибутов игрока, PetService, RebirthService, PromoService и DailyRewardService
 	local PetService = require(game:GetService("ServerScriptService").Server.PetService)
 	local RebirthService = require(game:GetService("ServerScriptService").Server.RebirthService)
+	local PromoService = require(game:GetService("ServerScriptService").Server.PromoService)
+	local DailyRewardService = require(game:GetService("ServerScriptService").Server.DailyRewardService)
 	local dataToSave = {
 		Money = player:GetAttribute("Money") or 0,
 		Crystals = player:GetAttribute("Crystals") or 0,
@@ -83,7 +85,9 @@ function DataService.saveData(player: Player)
 			MansionArea = player:GetAttribute("Unlocked_MansionArea") or false
 		},
 		Pets = PetService.getSaveData(player),
-		Rebirths = RebirthService.getSaveData(player)
+		Rebirths = RebirthService.getSaveData(player),
+		ClaimedCodes = PromoService.getSaveData(player),
+		DailyStatus = DailyRewardService.getSaveData(player)
 	}
 
 	local attempts = 3

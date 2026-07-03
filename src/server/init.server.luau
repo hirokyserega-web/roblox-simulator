@@ -18,6 +18,8 @@ local GhostBehaviorService = require(ServerScriptService.Server.GhostBehaviorSer
 local LocationService = require(ServerScriptService.Server.LocationService)
 local PetService = require(ServerScriptService.Server.PetService)
 local RebirthService = require(ServerScriptService.Server.RebirthService)
+local PromoService = require(ServerScriptService.Server.PromoService)
+local DailyRewardService = require(ServerScriptService.Server.DailyRewardService)
 
 print("Server started")
 
@@ -90,6 +92,12 @@ local function init()
 	
 	-- Инициализация перерождений
 	RebirthService.init()
+
+	-- Инициализация промокодов
+	PromoService.init()
+
+	-- Инициализация ежедневных наград
+	DailyRewardService.init()
 	
 	-- Запуск сервиса поимки
 	CaptureService.init()
@@ -113,6 +121,10 @@ local function init()
 		
 		-- Инициализируем перерождения
 		RebirthService.setupPlayer(player, loadedData and loadedData.Rebirths)
+		
+		-- Инициализируем промокоды и ежедневные награды
+		PromoService.setupPlayer(player, loadedData and loadedData.ClaimedCodes)
+		DailyRewardService.setupPlayer(player, loadedData and loadedData.DailyStatus)
 
 		-- Инициализируем разблокированные локации
 		local forestUnlocked = false
@@ -156,6 +168,8 @@ local function init()
 		UpgradeService.removePlayer(player)
 		PetService.removePlayer(player)
 		RebirthService.removePlayer(player)
+		PromoService.removePlayer(player)
+		DailyRewardService.removePlayer(player)
 	end)
 end
 

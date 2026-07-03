@@ -245,9 +245,29 @@ function PetService.getSaveData(player: Player): table
 	return playerPets[player.UserId] or {}
 end
 
+-- Прямое начисление питомца игроку (например, из промокодов или наград)
+function PetService.awardPet(player: Player, petType: string)
+	local petInfo = PetConfig.Pets[petType]
+	if not petInfo then return end
+
+	local newPet = {
+		Id = HttpService:GenerateGUID(false),
+		Type = petType,
+		Equipped = false
+	}
+
+	if not playerPets[player.UserId] then
+		playerPets[player.UserId] = {}
+	end
+
+	table.insert(playerPets[player.UserId], newPet)
+	PetService.syncPets(player)
+	
+	print(string.format("[PET SERVICE] Игроку %s напрямую выдан питомец: %s", player.Name, petType))
+end
+
 -- Очистка памяти при выходе
 function PetService.removePlayer(player: Player)
-	playerUpgrades = nil
 	playerPets[player.UserId] = nil
 end
 
