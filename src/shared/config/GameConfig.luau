@@ -1,4 +1,4 @@
--- Общие настройки игры Ghost Hunter Simulator (Фаза 3)
+-- Общие настройки игры Ghost Hunter Simulator (Фаза 6)
 local GameConfig = {
 	-- Стартовые параметры игрока
 	StartingMoney = 0,
@@ -24,6 +24,10 @@ local GameConfig = {
 	BlackMarketPosition = Vector3.new(30, 0.5, 30),
 	BlackMarketSize = Vector3.new(10, 1, 10),
 	SellDistance = 15,           -- Максимально допустимая дистанция до зоны продажи
+
+	-- Параметры глобального лидерборда
+	LeaderboardPosition = Vector3.new(-25, 6, -25),
+	LeaderboardSize = Vector3.new(16, 11, 1),
 }
 
 return GameConfig

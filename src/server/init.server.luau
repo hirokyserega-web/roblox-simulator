@@ -13,6 +13,7 @@ local CurrencyService = require(ServerScriptService.Server.CurrencyService)
 local SellService = require(ServerScriptService.Server.SellService)
 local UpgradeService = require(ServerScriptService.Server.UpgradeService)
 local DataService = require(ServerScriptService.Server.DataService)
+local LeaderboardService = require(ServerScriptService.Server.LeaderboardService)
 
 print("Server started")
 
@@ -61,6 +62,9 @@ local function init()
 	
 	-- Инициализация системы сохранения
 	DataService.init()
+	
+	-- Инициализация глобальной таблицы рекордов
+	LeaderboardService.init()
 	
 	-- Запуск спавнера
 	GhostSpawner.start(spawnZone)
