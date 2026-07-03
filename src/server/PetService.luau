@@ -105,6 +105,12 @@ function PetService.init()
 	local equipPetEvent = Remotes.getEvent("EquipPet")
 	equipPetEvent.OnServerEvent:Connect(PetService.onEquipPetRequest)
 
+	-- Слушаем запросы на открытие из UI на клиенте
+	local hatchEggRequest = Remotes.getEvent("HatchEggRequest")
+	hatchEggRequest.OnServerEvent:Connect(function(player, eggType, count)
+		PetService.hatchEgg(player, eggType, count)
+	end)
+
 	print("[PET SERVICE] Сервис питомцев запущен!")
 end
 
@@ -319,54 +325,67 @@ function PetService.syncPets(player: Player)
 end
 
 -- Покупка яйца (хетчинг)
-function PetService.hatchEgg(player: Player, eggType: string)
+function PetService.hatchEgg(player: Player, eggType: string, hatchCount: number?)
+	local count = hatchCount or 1
+	if count ~= 1 and count ~= 3 then count = 1 end
+
 	local config = PetConfig.Eggs[eggType]
 	if not config then return end
 
-	local cost = config.Cost
-	local success = CurrencyService.spend(player, "Money", cost)
+	local totalCost = config.Cost * count
+	local success = CurrencyService.spend(player, "Money", totalCost)
 
 	if success then
-		-- Выбираем случайного питомца
-		local totalWeight = 0
-		for _, item in ipairs(config.Chances) do
-			totalWeight = totalWeight + item.Chance
-		end
+		local chosenPets = {}
 
-		local randomVal = math.random() * totalWeight
-		local cumulativeWeight = 0
-		local chosenPetType = "Cat"
+		for i = 1, count do
+			-- Выбираем случайного питомца
+			local totalWeight = 0
+			for _, item in ipairs(config.Chances) do
+				totalWeight = totalWeight + item.Chance
+			end
 
-		for _, item in ipairs(config.Chances) do
-			cumulativeWeight = cumulativeWeight + item.Chance
-			if randomVal <= cumulativeWeight then
-				chosenPetType = item.PetType
-				break
+			local randomVal = math.random() * totalWeight
+			local cumulativeWeight = 0
+			local chosenPetType = "Cat"
+
+			for _, item in ipairs(config.Chances) do
+				cumulativeWeight = cumulativeWeight + item.Chance
+				if randomVal <= cumulativeWeight then
+					chosenPetType = item.PetType
+					break
+				end
+			end
+
+			local petInfo = PetConfig.Pets[chosenPetType]
+			if petInfo then
+				-- Считаем количество уже экипированных питомцев
+				local equippedCount = 0
+				for _, p in ipairs(playerPets[player.UserId] or {}) do
+					if p.Equipped then
+						equippedCount = equippedCount + 1
+					end
+				end
+
+				-- АВТО-ЭКИПИРОВКА: если есть свободный слот
+				local shouldAutoEquip = (equippedCount < 3)
+
+				-- Создаем запись о питомце
+				local newPet = {
+					Id = HttpService:GenerateGUID(false),
+					Type = chosenPetType,
+					Equipped = shouldAutoEquip
+				}
+
+				table.insert(playerPets[player.UserId], newPet)
+				table.insert(chosenPets, chosenPetType)
+
+				if shouldAutoEquip then
+					PetService.updateFollowers(player)
+				end
 			end
 		end
 
-		local petInfo = PetConfig.Pets[chosenPetType]
-		if not petInfo then return end
-
-		-- Считаем количество уже экипированных питомцев
-		local equippedCount = 0
-		for _, p in ipairs(playerPets[player.UserId] or {}) do
-			if p.Equipped then
-				equippedCount = equippedCount + 1
-			end
-		end
-
-		-- АВТО-ЭКИПИРОВКА: если есть свободный слот (экипировано меньше 3)
-		local shouldAutoEquip = (equippedCount < 3)
-
-		-- Создаем запись о питомце
-		local newPet = {
-			Id = HttpService:GenerateGUID(false),
-			Type = chosenPetType,
-			Equipped = shouldAutoEquip
-		}
-
-		table.insert(playerPets[player.UserId], newPet)
 		PetService.syncPets(player)
 
 		-- Если сработал авто-экип, обновляем 3D-модели в мире
@@ -374,7 +393,10 @@ function PetService.hatchEgg(player: Player, eggType: string)
 			PetService.updateFollowers(player)
 		end
 
-		-- Отправляем уведомление
+		-- Запускаем анимацию открытия на клиенте и уведомляем
+		local eggHatchedEvent = Remotes.getEvent("EggHatched")
+		eggHatchedEvent:FireClient(player, chosenPetType)
+
 		local notificationEvent = Remotes.getEvent("ShowNotification")
 		local autoEquipMsg = shouldAutoEquip and " (Автоматически экипирован!)" or ""
 		notificationEvent:FireClient(player, string.format("Вылупился питомец: %s (x%.1f монет)%s!", petInfo.DisplayName, petInfo.Multiplier, autoEquipMsg))

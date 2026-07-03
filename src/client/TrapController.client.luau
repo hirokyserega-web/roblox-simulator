@@ -9,6 +9,11 @@ local GameConfig = require(ReplicatedStorage.Shared.config.GameConfig)
 local UpgradeConfig = require(ReplicatedStorage.Shared.config.UpgradeConfig)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 
+-- Подгрузка темы и компонентов UI Kit
+local Theme = require(script.Parent.ui.theme.Theme)
+local ProgressBar = require(script.Parent.ui.components.ProgressBar)
+local UIManager = require(script.Parent.ui.UIManager)
+
 local player = Players.LocalPlayer
 local mouse = player:GetMouse()
 
@@ -24,62 +29,88 @@ local maxBagCapacity = GameConfig.DefaultBagCapacity
 local activeGhost = nil
 local captureProgress = 0
 local isHolding = false
-local currentProgressBarGui = nil
+
+local captureBarContainer = nil
+local captureProgressBar = nil
 
 -- Функция сброса захвата
 local function resetCapture()
 	activeGhost = nil
 	captureProgress = 0
-	if currentProgressBarGui then
-		currentProgressBarGui:Destroy()
-		currentProgressBarGui = nil
+	if captureBarContainer then
+		captureBarContainer:Destroy()
+		captureBarContainer = nil
 	end
+	captureProgressBar = nil
 end
 
--- Всплывающее предупреждение через глобальную функцию HUD
-local function triggerNotification(text: string)
-	if _G.ShowNotification then
-		_G.ShowNotification(text)
-	else
-		print("[TrapController] " .. text)
-	end
+-- Всплывающее предупреждение через UIManager
+local function triggerNotification(text: string, nType: string?)
+	UIManager.ShowToast(text, nType or "Warning")
 end
 
--- Создание прогресс-бара над призраком
+-- Создание прогресс-бара по центру-низу экрана
 local function createProgressBar(ghostPart: Part)
-	if currentProgressBarGui then
-		currentProgressBarGui:Destroy()
+	if captureBarContainer then
+		captureBarContainer:Destroy()
 	end
 
-	local billboard = Instance.new("BillboardGui")
-	billboard.Name = "CaptureProgressGui"
-	billboard.Size = UDim2.new(0, 100, 0, 10)
-	billboard.StudsOffset = Vector3.new(0, 2.5, 0)
-	billboard.AlwaysOnTop = true
-	billboard.Parent = ghostPart
+	local screenGui = UIManager.getScreenGui()
+	local rarity = ghostPart:GetAttribute("Rarity") or "Common"
+	local rColor = Theme.RarityColors[rarity] or Theme.Colors.Success
 
-	local background = Instance.new("Frame")
-	background.Size = UDim2.new(1, 0, 1, 0)
-	background.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-	background.BorderSizePixel = 0
-	background.Parent = billboard
+	-- 1. Контейнер полоски захвата
+	captureBarContainer = Instance.new("Frame")
+	captureBarContainer.Name = "CaptureOverlayFrame"
+	captureBarContainer.Size = UDim2.new(0, 300, 0, 50)
+	captureBarContainer.Position = UDim2.new(0.5, -150, 1, -145) -- Над док-панелью кнопок
+	captureBarContainer.BackgroundColor3 = Theme.Colors.Background
+	captureBarContainer.BackgroundTransparency = 0.2
+	captureBarContainer.BorderSizePixel = 0
+	captureBarContainer.Parent = screenGui
 
 	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 4)
-	corner.Parent = background
+	corner.CornerRadius = Theme.Sizes.CornerRadius
+	corner.Parent = captureBarContainer
 
-	local fill = Instance.new("Frame")
-	fill.Name = "Fill"
-	fill.Size = UDim2.new(0, 0, 1, 0)
-	fill.BackgroundColor3 = Color3.fromRGB(46, 204, 113) -- Зеленый
-	fill.BorderSizePixel = 0
-	fill.Parent = background
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = Theme.Sizes.BorderWidth
+	stroke.Color = Theme.Colors.Stroke
+	stroke.Parent = captureBarContainer
 
-	local fillCorner = Instance.new("UICorner")
-	fillCorner.CornerRadius = UDim.new(0, 4)
-	fillCorner.Parent = fill
+	-- 2. Иконка призрака слева
+	local ghostIcon = Instance.new("TextLabel")
+	ghostIcon.Size = UDim2.new(0, 30, 0, 30)
+	ghostIcon.Position = UDim2.new(0, 8, 0.5, -15)
+	ghostIcon.BackgroundTransparency = 1
+	ghostIcon.Font = Theme.Fonts.Title
+	ghostIcon.TextSize = 18
+	ghostIcon.Text = "👻"
+	ghostIcon.Parent = captureBarContainer
 
-	currentProgressBarGui = billboard
+	local iconStroke = Instance.new("UIStroke")
+	iconStroke.Thickness = 1
+	iconStroke.Color = rColor -- Цвет редкости призрака
+	iconStroke.Parent = ghostIcon
+
+	-- 3. Подпись «Удерживай!»
+	local title = Instance.new("TextLabel")
+	title.Size = UDim2.new(1, -55, 0, 18)
+	title.Position = UDim2.new(0, 48, 0, 4)
+	title.BackgroundTransparency = 1
+	title.Font = Theme.Fonts.Title
+	title.TextSize = 10
+	title.TextColor3 = Theme.Colors.Text
+	title.Text = "УДЕРЖИВАЙ КНОПКУ МЫШИ!"
+	title.Parent = captureBarContainer
+
+	-- 4. Линейный прогресс-бар
+	captureProgressBar = ProgressBar.create({
+		Size = UDim2.new(1, -55, 0, 10),
+		Position = UDim2.new(0, 48, 1, -20),
+		FillColor = rColor,
+		Parent = captureBarContainer
+	})
 end
 
 -- Обработка нажатия кнопки мыши / тапа по экрану
@@ -157,11 +188,8 @@ local function onHeartbeat(dt: number)
 	captureProgress = captureProgress + dt / captureTime
 	
 	-- Визуализируем прогресс
-	if currentProgressBarGui then
-		local fill = currentProgressBarGui.Frame:FindFirstChild("Fill")
-		if fill then
-			fill.Size = UDim2.new(math.clamp(captureProgress, 0, 1), 0, 1, 0)
-		end
+	if captureProgressBar then
+		captureProgressBar.SetProgress(captureProgress)
 	end
 
 	-- Успешный захват

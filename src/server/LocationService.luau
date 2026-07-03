@@ -137,6 +137,33 @@ function LocationService.init()
 		end
 	end
 
+	-- Сетевые события для UI телепортации и покупки зон
+	local buyZoneRequest = Remotes.getEvent("BuyZoneRequest")
+	buyZoneRequest.OnServerEvent:Connect(function(player, zoneId)
+		LocationService.processZonePurchase(player, zoneId)
+	end)
+
+	local teleportRequest = Remotes.getEvent("TeleportRequest")
+	teleportRequest.OnServerEvent:Connect(function(player, zoneId)
+		local config = LocationConfig[zoneId]
+		if not config then return end
+
+		-- Проверяем, разблокирована ли локация (или это стартовая)
+		local isUnlocked = (zoneId == "StarterArea") or (player:GetAttribute("Unlocked_" .. zoneId) == true)
+		if isUnlocked then
+			local char = player.Character
+			if char and char:FindFirstChild("HumanoidRootPart") then
+				char:PivotTo(CFrame.new(config.Position + Vector3.new(0, 4, 0)))
+				
+				local notificationEvent = Remotes.getEvent("ShowNotification")
+				notificationEvent:FireClient(player, string.format("Телепортация в: %s!", config.DisplayName))
+			end
+		else
+			local notificationEvent = Remotes.getEvent("ShowNotification")
+			notificationEvent:FireClient(player, "Вы еще не разблокировали эту локацию!")
+		end
+	end)
+
 	print("[LOCATION SERVICE] Локации успешно инициализированы!")
 end
 

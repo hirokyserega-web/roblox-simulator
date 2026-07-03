@@ -5,11 +5,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local GameConfig = require(ReplicatedStorage.Shared.config.GameConfig)
+local Remotes = require(ReplicatedStorage.Shared.Remotes)
 
 local LeaderboardService = {}
 local leaderboardDataStore = nil
 local boardPart = nil
 local listContainer = nil
+local cachedTopRanks = {} -- Локальный кэш топа для передачи клиентам
 
 -- Кэш имен игроков по их UserId для оптимизации сетевых запросов
 local usernameCache = {}
@@ -218,6 +220,19 @@ function LeaderboardService.updateLeaderboard()
 	end
 
 	local topData = pages:GetCurrentPage()
+	
+	-- Кэшируем записи для отдачи клиенту
+	local tempRanks = {}
+	for i = 1, 10 do
+		local dataEntry = topData[i]
+		if dataEntry then
+			local userId = tonumber(dataEntry.key)
+			local score = dataEntry.value
+			local username = getPlayerName(userId)
+			table.insert(tempRanks, { Rank = i, Name = username, Score = score })
+		end
+	end
+	cachedTopRanks = tempRanks
 
 	-- 3. Рендерим полученные записи в SurfaceGui
 	for i = 1, 10 do
@@ -268,6 +283,12 @@ function LeaderboardService.init()
 			task.wait(60)
 		end
 	end)
+
+	-- Регистрируем RemoteFunction для отдачи кэша клиентам
+	local getLeaderboardData = Remotes.getFunction("GetLeaderboardData")
+	getLeaderboardData.OnServerInvoke = function(player)
+		return cachedTopRanks
+	end
 
 	print("[LEADERBOARD SERVICE] Сервис глобальной таблицы рекордов успешно запущен!")
 end
