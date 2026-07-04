@@ -40,4 +40,11 @@ Theme.Sizes = {
 	StrokeThickness = 3,
 }
 
+
+Theme.Sounds = {
+	Click = "rbxassetid://6042053626",      -- Beautiful bubble click sound
+	Success = "rbxassetid://6042054215",    -- Catch success
+	Upgrade = "rbxassetid://5153734005",    -- Buy upgrade chime
+}
+
 return Theme

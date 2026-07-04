@@ -118,9 +118,11 @@ function InventoryService.getInventory(player: Player)
 	return inventories[player.UserId]
 end
 
-return InventoryService
 
 -- Регистрация RemoteFunction для получения данных клиентом
 Remotes.getFunction("GetInventoryData").OnServerInvoke = function(player)
 	return InventoryService.getInventory(player)
 end
+
+return InventoryService
+
