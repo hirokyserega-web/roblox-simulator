@@ -1,81 +1,69 @@
--- Candy Currency Chip Component
+-- Candy Currency Chip Component (React version)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local React = require(ReplicatedStorage.Packages.React)
 local Theme = require(script.Parent.Parent.theme.Theme)
 
-local ChipFactory = {}
+local function CurrencyChip(props)
+	local currencyType = props.CurrencyType or "Money"
+	local size = props.Size or UDim2.new(0, 150, 0, 40)
+	local position = props.Position or UDim2.new(0, 0, 0, 0)
+	local value = props.Value or 0
+	local layoutOrder = props.LayoutOrder
 
-function ChipFactory.create(options)
-	local currencyType = options.CurrencyType or "Money"
-	local color = options.Color or Theme.Colors.Green
-	local size = options.Size or UDim2.new(0, 150, 0, 40)
-	local position = options.Position or UDim2.new(0, 0, 0, 0)
-	local parent = options.Parent
-
-	-- Icons map based on CurrencyType (Placeholders)
 	local icons = {
-		Money = "rbxassetid://15264875322", -- Replace with real asset ID
+		Money = "rbxassetid://15264875322",
 		Crystals = "rbxassetid://15264875154",
 	}
 	
 	local icon = icons[currencyType] or ""
 
-	local chip = Instance.new("Frame")
-	chip.Name = "CurrencyChip_" .. currencyType
-	chip.Size = size
-	chip.Position = position
-	chip.BackgroundColor3 = Theme.Colors.Background
-	chip.BorderSizePixel = 0
-	chip.Parent = parent
+	return React.createElement("Frame", {
+		Name = "CurrencyChip_" .. currencyType,
+		Size = size,
+		Position = position,
+		BackgroundColor3 = Theme.Colors.Background,
+		BorderSizePixel = 0,
+		LayoutOrder = layoutOrder,
+	}, {
+		Corner = React.createElement("UICorner", {
+			CornerRadius = Theme.Sizes.CornerPill or UDim.new(0, 20),
+		}),
+		Stroke = React.createElement("UIStroke", {
+			Color = Theme.Colors.Stroke,
+			Thickness = Theme.Sizes.StrokeThickness,
+		}),
 
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = Theme.Sizes.CornerPill
-	corner.Parent = chip
+		Icon = React.createElement("ImageLabel", {
+			Name = "Icon",
+			Size = UDim2.new(0, 28, 0, 28),
+			Position = UDim2.new(0, 6, 0.5, 0),
+			AnchorPoint = Vector2.new(0, 0.5),
+			BackgroundTransparency = 1,
+			Image = icon,
+		}),
 
-	local stroke = Instance.new("UIStroke")
-	stroke.Color = Theme.Colors.Stroke
-	stroke.Thickness = Theme.Sizes.StrokeThickness
-	stroke.Parent = chip
-
-	-- Icon
-	local iconFrame = Instance.new("ImageLabel")
-	iconFrame.Name = "Icon"
-	iconFrame.Size = UDim2.new(0, 28, 0, 28)
-	iconFrame.Position = UDim2.new(0, 6, 0.5, 0)
-	iconFrame.AnchorPoint = Vector2.new(0, 0.5)
-	iconFrame.BackgroundTransparency = 1
-	iconFrame.Image = icon
-	iconFrame.Parent = chip
-
-	-- Text Label
-	local textLabel = Instance.new("TextLabel")
-	textLabel.Name = "Value"
-	textLabel.Size = UDim2.new(1, -45, 1, 0)
-	textLabel.Position = UDim2.new(0, 40, 0, 0)
-	textLabel.BackgroundTransparency = 1
-	textLabel.Text = "0"
-	textLabel.Font = Theme.Fonts.Main
-	textLabel.TextColor3 = Theme.Colors.Text
-	textLabel.TextXAlignment = Enum.TextXAlignment.Left
-	textLabel.TextScaled = true
-	textLabel.Parent = chip
-
-	local ts = Instance.new("UIStroke")
-	ts.Color = Theme.Colors.Stroke
-	ts.Thickness = 1.2
-	ts.Parent = textLabel
-	
-	local pad = Instance.new("UIPadding")
-	pad.PaddingTop = UDim.new(0, 6)
-	pad.PaddingBottom = UDim.new(0, 6)
-	pad.Parent = textLabel
-
-	local api = {}
-	api.Instance = chip
-
-	function api.SetValue(val)
-		textLabel.Text = tostring(val)
-	end
-
-	return api
+		Value = React.createElement("TextLabel", {
+			Name = "Value",
+			Size = UDim2.new(1, -45, 1, 0),
+			Position = UDim2.new(0, 40, 0, 0),
+			BackgroundTransparency = 1,
+			Text = tostring(value),
+			Font = Theme.Fonts.Main,
+			TextColor3 = Theme.Colors.Text,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextScaled = true,
+		}, {
+			Stroke = React.createElement("UIStroke", {
+				Color = Theme.Colors.Stroke,
+				Thickness = 1.2,
+			}),
+			Padding = React.createElement("UIPadding", {
+				PaddingTop = UDim.new(0, 6),
+				PaddingBottom = UDim.new(0, 6),
+			})
+		})
+	})
 end
 
-return ChipFactory
+return CurrencyChip
+

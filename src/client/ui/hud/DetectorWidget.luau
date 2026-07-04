@@ -1,83 +1,87 @@
--- Candy Detector Widget
+-- Candy Detector Widget (React version)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
+local React = require(ReplicatedStorage.Packages.React)
 local Theme = require(script.Parent.Parent.theme.Theme)
 
-local DetectorWidget = {}
+local function DetectorWidget(props)
+	local position = props.Position or UDim2.new(0, 20, 0.5, -241)
+	local signal = math.clamp(props.Signal or 0, 0, 1)
+	local rarity = props.Rarity or "NONE"
 
-function DetectorWidget.create(options)
-	local parent = options.Parent
+	local fillRef = React.useRef(nil)
 
-	local container = Instance.new("Frame")
-	container.Name = "DetectorWidget"
-	container.Size = UDim2.new(0, 160, 0, 80)
-	container.Position = options.Position or UDim2.new(0, 20, 0.5, -241)
-	container.BackgroundColor3 = Theme.Colors.Panel
-	container.BackgroundTransparency = 1 - (Theme.Colors.PanelOpacity or 0.8)
-	container.Parent = parent
+	React.useEffect(function()
+		if fillRef.current then
+			local targetSize = UDim2.new(signal, 0, 1, 0)
+			local targetColor = Theme.Colors.Info:Lerp(Theme.Colors.Error or Theme.Colors.Red, signal)
+			
+			TweenService:Create(fillRef.current, TweenInfo.new(0.1), {
+				Size = targetSize,
+				BackgroundColor3 = targetColor
+			}):Play()
+		end
+	end, {signal})
 
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = Theme.Sizes.CornerRadius
-	corner.Parent = container
+	return React.createElement("Frame", {
+		Name = "DetectorWidget",
+		Size = UDim2.new(0, 160, 0, 80),
+		Position = position,
+		BackgroundColor3 = Theme.Colors.Panel,
+		BackgroundTransparency = 1 - (Theme.Colors.PanelOpacity or 0.8),
+	}, {
+		Corner = React.createElement("UICorner", {
+			CornerRadius = Theme.Sizes.CornerRadius,
+		}),
+		Stroke = React.createElement("UIStroke", {
+			Color = Theme.Colors.Stroke,
+			Thickness = 2,
+		}),
 
-	local stroke = Instance.new("UIStroke")
-	stroke.Color = Theme.Colors.Stroke
-	stroke.Thickness = 2
-	stroke.Parent = container
+		Title = React.createElement("TextLabel", {
+			Name = "Label",
+			Size = UDim2.new(1, 0, 0, 25),
+			BackgroundTransparency = 1,
+			Text = "SIGNAL STRENGTH",
+			Font = Theme.Fonts.Bold,
+			TextColor3 = Theme.Colors.TextSecondary,
+			TextSize = 12,
+		}),
 
-	local title = Instance.new("TextLabel")
-	title.Name = "Label"
-	title.Size = UDim2.new(1, 0, 0, 25)
-	title.BackgroundTransparency = 1
-	title.Text = "SIGNAL STRENGTH"
-	title.Font = Theme.Fonts.Bold
-	title.TextColor3 = Theme.Colors.TextSecondary
-	title.TextSize = 12
-	title.Parent = container
+		Meter = React.createElement("Frame", {
+			Name = "Meter",
+			Size = UDim2.new(1, -20, 0, 12),
+			Position = UDim2.new(0.5, 0, 0, 40),
+			AnchorPoint = Vector2.new(0.5, 0),
+			BackgroundColor3 = Theme.Colors.Background,
+		}, {
+			Corner = React.createElement("UICorner", {
+				CornerRadius = UDim.new(1, 0),
+			}),
+			Fill = React.createElement("Frame", {
+				Name = "Fill",
+				ref = fillRef,
+				Size = UDim2.new(signal, 0, 1, 0),
+				BackgroundColor3 = Theme.Colors.Info,
+			}, {
+				Corner = React.createElement("UICorner", {
+					CornerRadius = UDim.new(1, 0),
+				})
+			})
+		}),
 
-	local meter = Instance.new("Frame")
-	meter.Name = "Meter"
-	meter.Size = UDim2.new(1, -20, 0, 12)
-	meter.Position = UDim2.new(0.5, 0, 0, 40)
-	meter.AnchorPoint = Vector2.new(0.5, 0)
-	meter.BackgroundColor3 = Theme.Colors.Background
-	meter.Parent = container
-	
-	Instance.new("UICorner", meter).CornerRadius = UDim.new(1, 0)
-
-	local fill = Instance.new("Frame")
-	fill.Name = "Fill"
-	fill.Size = UDim2.new(0, 0, 1, 0)
-	fill.BackgroundColor3 = Theme.Colors.Info
-	fill.Parent = meter
-	
-	Instance.new("UICorner", fill).CornerRadius = UDim.new(1, 0)
-
-	local rarityLabel = Instance.new("TextLabel")
-	rarityLabel.Name = "RarityLabel"
-	rarityLabel.Size = UDim2.new(1, 0, 0, 20)
-	rarityLabel.Position = UDim2.new(0, 0, 1, -25)
-	rarityLabel.BackgroundTransparency = 1
-	rarityLabel.Text = "NONE"
-	rarityLabel.Font = Theme.Fonts.Main
-	rarityLabel.TextColor3 = Theme.Colors.Text
-	rarityLabel.TextSize = 16
-	rarityLabel.Parent = container
-
-	local api = {}
-	api.Instance = container
-
-	function api.SetSignal(factor)
-		local targetSize = UDim2.new(math.clamp(factor, 0, 1), 0, 1, 0)
-		TweenService:Create(fill, TweenInfo.new(0.1), {Size = targetSize}):Play()
-		fill.BackgroundColor3 = Theme.Colors.Info:Lerp(Theme.Colors.Red, factor)
-	end
-
-	function api.SetRarity(rarity)
-		rarityLabel.Text = string.upper(rarity)
-		rarityLabel.TextColor3 = Theme.RarityColors[rarity] or Theme.Colors.Text
-	end
-
-	return api
+		RarityLabel = React.createElement("TextLabel", {
+			Name = "RarityLabel",
+			Size = UDim2.new(1, 0, 0, 20),
+			Position = UDim2.new(0, 0, 1, -25),
+			BackgroundTransparency = 1,
+			Text = string.upper(rarity),
+			Font = Theme.Fonts.Main,
+			TextColor3 = Theme.RarityColors[rarity] or Theme.Colors.Text,
+			TextSize = 16,
+		})
+	})
 end
 
 return DetectorWidget
+

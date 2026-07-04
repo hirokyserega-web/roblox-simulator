@@ -1,58 +1,54 @@
--- Candy Progress Bar Component
+-- Candy Progress Bar Component (React version)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
+local React = require(ReplicatedStorage.Packages.React)
 local Theme = require(script.Parent.Parent.theme.Theme)
 
-local ProgressFactory = {}
+local function ProgressBar(props)
+	local size = props.Size or UDim2.new(1, 0, 0, 24)
+	local position = props.Position or UDim2.new(0, 0, 0, 0)
+	local progress = math.clamp(props.Progress or 0, 0, 1)
+	local color = props.Color or props.FillColor or Theme.Colors.Info
 
-function ProgressFactory.create(options)
-	local color = options.Color or options.FillColor or Theme.Colors.Blue
-	local size = options.Size or UDim2.new(1, 0, 0, 24)
-	local position = options.Position or UDim2.new(0, 0, 0, 0)
-	local parent = options.Parent
+	local fillRef = React.useRef(nil)
 
-	local container = Instance.new("Frame")
-	container.Name = "ProgressBar"
-	container.Size = size
-	container.Position = position
-	container.BackgroundColor3 = Theme.Colors.Background
-	container.BorderSizePixel = 0
-	container.Parent = parent
+	React.useEffect(function()
+		if fillRef.current then
+			TweenService:Create(fillRef.current, TweenInfo.new(0.3), {
+				Size = UDim2.new(progress, 0, 1, 0)
+			}):Play()
+		end
+	end, {progress})
 
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = Theme.Sizes.CornerButton
-	corner.Parent = container
+	return React.createElement("Frame", {
+		Name = "ProgressBar",
+		Size = size,
+		Position = position,
+		AnchorPoint = props.AnchorPoint,
+		BackgroundColor3 = Theme.Colors.Background,
+		BorderSizePixel = 0,
+	}, {
+		Corner = React.createElement("UICorner", {
+			CornerRadius = Theme.Sizes.CornerButton,
+		}),
+		Stroke = React.createElement("UIStroke", {
+			Thickness = 1,
+			Color = Theme.Colors.Stroke,
+		}),
 
-	local stroke = Instance.new("UIStroke")
-	stroke.Thickness = 1
-	stroke.Color = Theme.Colors.Stroke
-	stroke.Parent = container
-
-	local fill = Instance.new("Frame")
-	fill.Name = "Fill"
-	fill.Size = UDim2.new(0, 0, 1, 0)
-	fill.BackgroundColor3 = color
-	fill.BorderSizePixel = 0
-	fill.Parent = container
-
-	local fillCorner = Instance.new("UICorner")
-	fillCorner.CornerRadius = Theme.Sizes.CornerButton
-	fillCorner.Parent = fill
-
-	local api = {}
-	api.Instance = container
-
-	function api.SetProgress(value)
-		value = math.clamp(value, 0, 1)
-		TweenService:Create(fill, TweenInfo.new(0.3), {
-			Size = UDim2.new(value, 0, 1, 0)
-		}):Play()
-	end
-
-	function api.SetColor(newColor)
-		fill.BackgroundColor3 = newColor
-	end
-
-	return api
+		Fill = React.createElement("Frame", {
+			Name = "Fill",
+			ref = fillRef,
+			Size = UDim2.new(progress, 0, 1, 0),
+			BackgroundColor3 = color,
+			BorderSizePixel = 0,
+		}, {
+			Corner = React.createElement("UICorner", {
+				CornerRadius = Theme.Sizes.CornerButton,
+			})
+		})
+	})
 end
 
-return ProgressFactory
+return ProgressBar
+

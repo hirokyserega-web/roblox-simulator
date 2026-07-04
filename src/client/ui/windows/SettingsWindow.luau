@@ -1,18 +1,22 @@
--- Окно Настроек (SettingsWindow) - Премиум-редизайн
-local Players = game:GetService("Players")
-
+-- SettingsWindow (React version)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local React = require(ReplicatedStorage.Packages.React)
 local Theme = require(script.Parent.Parent.theme.Theme)
-local Button = require(script.Parent.Parent.components.Button)
 local Panel = require(script.Parent.Parent.components.Panel)
-local UIManager = _G.UIManager
+local Button = require(script.Parent.Parent.components.Button)
+local UIManager = {
+	ShowToast = function(...)
+		if _G.UIManager then
+			_G.UIManager.ShowToast(...)
+		end
+	end,
+	openWindow = function(...)
+		if _G.UIManager then
+			_G.UIManager.openWindow(...)
+		end
+	end,
+}
 
-local player = Players.LocalPlayer
-
-local SettingsWindow = {}
-local settingsPanel = nil
-local musicToggle = nil
-local soundsToggle = nil
-local particlesToggle = nil
 
 local settingsStates = {
 	Music = true,
@@ -20,84 +24,72 @@ local settingsStates = {
 	Particles = true
 }
 
-local function updateToggle(name: string, buttonComp: table)
-	local state = settingsStates[name]
-	local prefix = name == "Music" and "🎵 Музыка" or (name == "Sounds" and "🔊 Звуки" or "✨ Частицы")
-	local text = string.format("%s: %s", prefix, state and "ВКЛ" or "ВЫКЛ")
-	local color = state and Theme.Colors.Success or Theme.Colors.Error
-	
-	buttonComp.SetText(text)
-	buttonComp.SetColor(color)
-end
+local function SettingsWindow(props)
+	local visible = props.Visible
+	local onClose = props.OnClose
 
-function SettingsWindow.init()
-	local screenGui = UIManager.getScreenGui()
+	local music, setMusic = React.useState(settingsStates.Music)
+	local sounds, setSounds = React.useState(settingsStates.Sounds)
+	local particles, setParticles = React.useState(settingsStates.Particles)
 
-	settingsPanel = Panel.create({
+	if not visible then return nil end
+
+	return React.createElement(Panel, {
 		Title = "НАСТРОЙКИ ИГРЫ",
 		Size = UDim2.new(0, 340, 0, 300),
-		Position = UDim2.new(0.5, -170, 0.5, -150),
-		Parent = screenGui,
-		OnClose = function()
-			settingsPanel.Close()
-		end
+		Position = UDim2.new(0.5, 0, 0.5, 0),
+		Visible = true,
+		OnClose = onClose,
+	}, {
+		Container = React.createElement("Frame", {
+			Size = UDim2.new(1, -20, 1, -20),
+			Position = UDim2.new(0, 10, 0, 10),
+			BackgroundTransparency = 1,
+		}, {
+			ListLayout = React.createElement("UIListLayout", {
+				Padding = UDim.new(0, 18),
+				HorizontalAlignment = Enum.HorizontalAlignment.Center,
+				VerticalAlignment = Enum.VerticalAlignment.Center,
+			}),
+
+			MusicToggle = React.createElement(Button, {
+				Text = string.format("🎵 Музыка: %s", music and "ВКЛ" or "ВЫКЛ"),
+				Color = music and Theme.Colors.Success or Theme.Colors.Error,
+				Size = UDim2.new(1, -20, 0, 48),
+				OnClick = function()
+					local newVal = not music
+					settingsStates.Music = newVal
+					setMusic(newVal)
+					UIManager.ShowToast("Настройка музыки изменена!", "Info")
+				end
+			}),
+
+			SoundsToggle = React.createElement(Button, {
+				Text = string.format("🔊 Звуки: %s", sounds and "ВКЛ" or "ВЫКЛ"),
+				Color = sounds and Theme.Colors.Success or Theme.Colors.Error,
+				Size = UDim2.new(1, -20, 0, 48),
+				OnClick = function()
+					local newVal = not sounds
+					settingsStates.Sounds = newVal
+					setSounds(newVal)
+					UIManager.ShowToast("Настройка звуков изменена!", "Info")
+				end
+			}),
+
+			ParticlesToggle = React.createElement(Button, {
+				Text = string.format("✨ Частицы: %s", particles and "ВКЛ" or "ВЫКЛ"),
+				Color = particles and Theme.Colors.Success or Theme.Colors.Error,
+				Size = UDim2.new(1, -20, 0, 48),
+				OnClick = function()
+					local newVal = not particles
+					settingsStates.Particles = newVal
+					setParticles(newVal)
+					UIManager.ShowToast("Настройка частиц изменена!", "Info")
+				end
+			})
+		})
 	})
-
-	UIManager.registerWindow("Settings", settingsPanel)
-
-	local contentFrame = Instance.new("Frame")
-	contentFrame.Size = UDim2.new(1, -20, 1, -20)
-	contentFrame.Position = UDim2.new(0, 10, 0, 10)
-	contentFrame.BackgroundTransparency = 1
-	contentFrame.Parent = settingsPanel.Content
-
-	local listLayout = Instance.new("UIListLayout")
-	listLayout.Padding = UDim.new(0, 18)
-	listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-	listLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-	listLayout.Parent = contentFrame
-
-	musicToggle = Button.create({
-		Text = "🎵 Музыка: ВКЛ",
-		Color = Theme.Colors.Success,
-		Size = UDim2.new(1, -20, 0, 48),
-		Parent = contentFrame,
-		OnClick = function()
-			settingsStates.Music = not settingsStates.Music
-			updateToggle("Music", musicToggle)
-			UIManager.ShowToast("Настройка музыки изменена!", "Info")
-		end
-	})
-
-	soundsToggle = Button.create({
-		Text = "🔊 Звуки: ВКЛ",
-		Color = Theme.Colors.Success,
-		Size = UDim2.new(1, -20, 0, 48),
-		Parent = contentFrame,
-		OnClick = function()
-			settingsStates.Sounds = not settingsStates.Sounds
-			updateToggle("Sounds", soundsToggle)
-			UIManager.ShowToast("Настройка звуков изменена!", "Info")
-		end
-	})
-
-	particlesToggle = Button.create({
-		Text = "✨ Частицы: ВКЛ",
-		Color = Theme.Colors.Success,
-		Size = UDim2.new(1, -20, 0, 48),
-		Parent = contentFrame,
-		OnClick = function()
-			settingsStates.Particles = not settingsStates.Particles
-			updateToggle("Particles", particlesToggle)
-			UIManager.ShowToast("Настройка частиц изменена!", "Info")
-		end
-	})
-
-	updateToggle("Music", musicToggle)
-	updateToggle("Sounds", soundsToggle)
-	updateToggle("Particles", particlesToggle)
 end
 
-SettingsWindow.init()
-
 return SettingsWindow
+

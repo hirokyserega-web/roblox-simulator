@@ -1,41 +1,57 @@
--- UIManager
-local Theme = require(script.Parent.theme.Theme)
-local Toast = require(script.Parent.components.Toast)
+-- UIManager (React version)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+
+local React = require(ReplicatedStorage.Packages.React)
+local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
+
+local App = require(script.Parent.App)
+
 local UIManager = {}
-local screenGui = nil
-local windows = {}
-
-function UIManager.getScreenGui() return screenGui end
-function UIManager.ShowToast(msg, type) Toast.show(msg, type) end
-
-function UIManager.registerWindow(name, api)
-	windows[name] = api
-end
+UIManager._openWindowCallback = nil
+UIManager._showToastCallback = nil
 
 function UIManager.openWindow(name)
-	if windows[name] then windows[name].Open() end
+	if UIManager._openWindowCallback then
+		UIManager._openWindowCallback(name)
+	end
+end
+
+function UIManager.closeWindow()
+	if UIManager._openWindowCallback then
+		UIManager._openWindowCallback(nil)
+	end
+end
+
+function UIManager.ShowToast(msg, type)
+	if UIManager._showToastCallback then
+		UIManager._showToastCallback(msg, type)
+	end
+end
+
+-- Backward compatibility aliases/methods
+local registeredWindows = {}
+function UIManager.registerWindow(name, api)
+	registeredWindows[name] = api
+	return api
 end
 
 local function init()
-	local player = game:GetService("Players").LocalPlayer
+	local player = Players.LocalPlayer
 	local pg = player:WaitForChild("PlayerGui")
-	screenGui = Instance.new("ScreenGui")
+	
+	local screenGui = Instance.new("ScreenGui")
 	screenGui.Name = "GhostSimulatorUI"
 	screenGui.ResetOnSpawn = false
 	screenGui.IgnoreGuiInset = true
 	screenGui.Parent = pg
-	
-	Toast.init(screenGui)
+
+	local root = ReactRoblox.createRoot(screenGui)
+	root:render(React.createElement(App))
+
 	_G.UIManager = UIManager
-	
-	task.spawn(function()
-		local shop = require(script.Parent.windows.ShopWindow)
-		UIManager.registerWindow("Shop", shop.init(screenGui))
-		
-		local inv = require(script.Parent.windows.InventoryWindow)
-		UIManager.registerWindow("Inventory", inv.init(screenGui))
-	end)
 end
 
 init()
 return UIManager
+

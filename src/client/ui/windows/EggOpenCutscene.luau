@@ -19,7 +19,7 @@ local function playSound(soundId, vol)
 end
 
 function EggOpenCutscene.play(chosenPets, currentSelectedEgg, fastOpenEnabled)
-	local screenGui = UIManager.getScreenGui()
+	local screenGui = game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("GhostSimulatorUI")
 
 	-- Полноэкранный оверлей затемнения
 	local overlay = Instance.new("Frame")

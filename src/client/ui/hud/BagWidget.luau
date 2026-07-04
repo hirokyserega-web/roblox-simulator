@@ -1,72 +1,62 @@
--- Candy Bag Widget
+-- Candy Bag Widget (React version)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local React = require(ReplicatedStorage.Packages.React)
 local Theme = require(script.Parent.Parent.theme.Theme)
 local ProgressBar = require(script.Parent.Parent.components.ProgressBar)
 
-local BagWidget = {}
+local function BagWidget(props)
+	local position = props.Position or UDim2.new(1, -170, 0.4, -90)
+	local count = props.Count or 0
+	local maxCapacity = props.MaxCapacity or 10
 
-function BagWidget.create(options)
-	local parent = options.Parent
+	local progress = count / maxCapacity
+	local barColor = count >= maxCapacity and Theme.Colors.Error or Theme.Colors.Orange
 
-	local container = Instance.new("Frame")
-	container.Name = "BagWidget"
-	container.Size = UDim2.new(0, 160, 0, 75)
-	container.Position = options.Position or UDim2.new(1, -170, 0.4, -90)
-	container.BackgroundColor3 = Theme.Colors.Panel
-	container.BackgroundTransparency = 1 - (Theme.Colors.PanelOpacity or 0.8)
-	container.Parent = parent
+	return React.createElement("Frame", {
+		Name = "BagWidget",
+		Size = UDim2.new(0, 160, 0, 75),
+		Position = position,
+		BackgroundColor3 = Theme.Colors.Panel,
+		BackgroundTransparency = 1 - (Theme.Colors.PanelOpacity or 0.8),
+	}, {
+		Corner = React.createElement("UICorner", {
+			CornerRadius = Theme.Sizes.CornerRadius,
+		}),
+		Stroke = React.createElement("UIStroke", {
+			Color = Theme.Colors.Stroke,
+			Thickness = 2,
+		}),
 
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = Theme.Sizes.CornerRadius
-	corner.Parent = container
+		Title = React.createElement("TextLabel", {
+			Name = "Label",
+			Size = UDim2.new(1, 0, 0, 25),
+			BackgroundTransparency = 1,
+			Text = "INVENTORY",
+			Font = Theme.Fonts.Bold,
+			TextColor3 = Theme.Colors.TextSecondary,
+			TextSize = 12,
+		}),
 
-	local stroke = Instance.new("UIStroke")
-	stroke.Color = Theme.Colors.Stroke
-	stroke.Thickness = 2
-	stroke.Parent = container
+		Bar = React.createElement(ProgressBar, {
+			Size = UDim2.new(1, -20, 0, 20),
+			Position = UDim2.new(0.5, 0, 0, 35),
+			AnchorPoint = Vector2.new(0.5, 0),
+			Progress = progress,
+			Color = barColor,
+		}),
 
-	local title = Instance.new("TextLabel")
-	title.Name = "Label"
-	title.Size = UDim2.new(1, 0, 0, 25)
-	title.BackgroundTransparency = 1
-	title.Text = "INVENTORY"
-	title.Font = Theme.Fonts.Bold
-	title.TextColor3 = Theme.Colors.TextSecondary
-	title.TextSize = 12
-	title.Parent = container
-
-	local bar = ProgressBar.create({
-		Parent = container,
-		Size = UDim2.new(1, -20, 0, 20),
-		Position = UDim2.new(0.5, 0, 0, 35),
-		AnchorPoint = Vector2.new(0.5, 0),
-		Color = Theme.Colors.Orange
+		CountLabel = React.createElement("TextLabel", {
+			Name = "CountLabel",
+			Size = UDim2.new(1, 0, 0, 20),
+			Position = UDim2.new(0, 0, 1, -22),
+			BackgroundTransparency = 1,
+			Text = string.format("%d / %d", count, maxCapacity),
+			Font = Theme.Fonts.Main,
+			TextColor3 = Theme.Colors.Text,
+			TextSize = 16,
+		})
 	})
-
-	local countLabel = Instance.new("TextLabel")
-	countLabel.Name = "CountLabel"
-	countLabel.Size = UDim2.new(1, 0, 0, 20)
-	countLabel.Position = UDim2.new(0, 0, 1, -22)
-	countLabel.BackgroundTransparency = 1
-	countLabel.Text = "0 / 10"
-	countLabel.Font = Theme.Fonts.Main
-	countLabel.TextColor3 = Theme.Colors.Text
-	countLabel.TextSize = 16
-	countLabel.Parent = container
-
-	local api = {}
-	api.Instance = container
-
-	function api.Update(count, maxCap)
-		countLabel.Text = string.format("%d / %d", count, maxCap)
-		bar.SetProgress(count / maxCap)
-		if count >= maxCap then
-			bar.SetColor(Theme.Colors.Red)
-		else
-			bar.SetColor(Theme.Colors.Orange)
-		end
-	end
-
-	return api
 end
 
 return BagWidget
+

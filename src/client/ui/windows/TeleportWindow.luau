@@ -1,23 +1,28 @@
--- Окно Телепортации (TeleportWindow)
+-- TeleportWindow (React version)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
+local React = require(ReplicatedStorage.Packages.React)
+local Theme = require(script.Parent.Parent.theme.Theme)
+local Panel = require(script.Parent.Parent.components.Panel)
+local Button = require(script.Parent.Parent.components.Button)
 local LocationConfig = require(ReplicatedStorage.Shared.config.LocationConfig)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local UIManager = {
+	ShowToast = function(...)
+		if _G.UIManager then
+			_G.UIManager.ShowToast(...)
+		end
+	end,
+	openWindow = function(...)
+		if _G.UIManager then
+			_G.UIManager.openWindow(...)
+		end
+	end,
+}
 
-local Theme = require(script.Parent.Parent.theme.Theme)
-local Button = require(script.Parent.Parent.components.Button)
-local Panel = require(script.Parent.Parent.components.Panel)
-local UIManager = _G.UIManager
 
-local player = Players.LocalPlayer
 local teleportRequest = Remotes.getEvent("TeleportRequest")
 local buyZoneRequest = Remotes.getEvent("BuyZoneRequest")
-
-local TeleportWindow = {}
-local teleportPanel = nil
-local scrollingFrame = nil
-local zoneRows = {}
 
 local function formatNumber(value: number): string
 	local formatted = tostring(value)
@@ -31,91 +36,44 @@ local function formatNumber(value: number): string
 	return formatted
 end
 
-local function updateZoneRow(zoneId: string)
-	local row = zoneRows[zoneId]
-	if not row then return end
+local function TeleportWindow(props)
+	local visible = props.Visible
+	local onClose = props.OnClose
+	local money = props.Money or 0
 
-	local config = LocationConfig[zoneId]
-	local isUnlocked = (zoneId == "StarterArea") or (player:GetAttribute("Unlocked_" .. zoneId) == true)
-	local currentMoney = player:GetAttribute("Money") or 0
+	local player = Players.LocalPlayer
 
-	if row.ActionButton then
-		row.ActionButton.Destroy()
-		row.ActionButton = nil
-	end
-
-	if isUnlocked then
-		row.StatusLabel.Text = "РАЗБЛОКИРОВАНО"
-		row.StatusLabel.TextColor3 = Theme.Colors.Success
-
-		row.ActionButton = Button.create({
-			Text = "ТЕЛЕПОРТ",
-			Color = Theme.Colors.Success,
-			Size = UDim2.new(0, 100, 0, 36),
-			Position = UDim2.new(1, -110, 0.5, -18),
-			Parent = row.Frame,
-			OnClick = function()
-				teleportRequest:FireServer(zoneId)
-				teleportPanel.Close()
-			end
-		})
-	else
-		local cost = config.Cost
-		row.StatusLabel.Text = string.format("Цена: $%s", formatNumber(cost))
-		row.StatusLabel.TextColor3 = Theme.Colors.Warning
-
-		local canAfford = currentMoney >= cost
-
-		row.ActionButton = Button.create({
-			Text = "КУПИТЬ",
-			Color = canAfford and Theme.Colors.Accent or Theme.Colors.Error,
-			Size = UDim2.new(0, 100, 0, 36),
-			Position = UDim2.new(1, -110, 0.5, -18),
-			Parent = row.Frame,
-			OnClick = function()
-				if canAfford then
-					buyZoneRequest:FireServer(zoneId)
-				else
-					UIManager.ShowToast("Не хватает монет для покупки этой зоны!", "Error")
-				end
-			end
-		})
-	end
-end
-
-local function updateAllZones()
-	for zoneId, _ in pairs(LocationConfig) do
-		updateZoneRow(zoneId)
-	end
-end
-
-function TeleportWindow.init()
-	local screenGui = UIManager.getScreenGui()
-
-	teleportPanel = Panel.create({
-		Title = "ТЕЛЕПОРТАЦИЯ",
-		Size = UDim2.new(0, 380, 0, 300),
-		Position = UDim2.new(0.5, -190, 0.5, -150),
-		Parent = screenGui,
-		OnClose = function()
-			teleportPanel.Close()
+	local unlocked, setUnlocked = React.useState(function()
+		local initial = {}
+		for zoneId, _ in pairs(LocationConfig) do
+			initial[zoneId] = (zoneId == "StarterArea") or (player:GetAttribute("Unlocked_" .. zoneId) == true)
 		end
-	})
+		return initial
+	end)
 
-	UIManager.registerWindow("Teleport", teleportPanel)
+	React.useEffect(function()
+		local connections = {}
+		for zoneId, _ in pairs(LocationConfig) do
+			if zoneId ~= "StarterArea" then
+				local conn = player:GetAttributeChangedSignal("Unlocked_" .. zoneId):Connect(function()
+					setUnlocked(function(current)
+						local copy = table.clone(current)
+						copy[zoneId] = player:GetAttribute("Unlocked_" .. zoneId) == true
+						return copy
+					end)
+				end)
+				table.insert(connections, conn)
+			end
+		end
 
-	scrollingFrame = Instance.new("ScrollingFrame")
-	scrollingFrame.Size = UDim2.new(1, 0, 1, -10)
-	scrollingFrame.Position = UDim2.new(0, 0, 0, 5)
-	scrollingFrame.BackgroundTransparency = 1
-	scrollingFrame.BorderSizePixel = 0
-	scrollingFrame.ScrollBarThickness = 6
-	scrollingFrame.Parent = teleportPanel.Content
+		return function()
+			for _, conn in ipairs(connections) do
+				conn:Disconnect()
+			end
+		end
+	end, {})
 
-	local listLayout = Instance.new("UIListLayout")
-	listLayout.Padding = UDim.new(0, 10)
-	listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-	listLayout.Parent = scrollingFrame
+	if not visible then return nil end
 
 	local sortedZones = {}
 	for zoneId, config in pairs(LocationConfig) do
@@ -123,64 +81,98 @@ function TeleportWindow.init()
 	end
 	table.sort(sortedZones, function(a, b) return a.Cost < b.Cost end)
 
+	local rows = {
+		ListLayout = React.createElement("UIListLayout", {
+			Padding = UDim.new(0, 10),
+			HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		})
+	}
+
 	for _, item in ipairs(sortedZones) do
 		local zoneId = item.Id
+		local isUnlocked = unlocked[zoneId]
+		local cost = item.Cost
+		local canAfford = money >= cost
 
-		local rowFrame = Instance.new("Frame")
-		rowFrame.Name = "Row_" .. zoneId
-		rowFrame.Size = UDim2.new(1, -12, 0, 56)
-		rowFrame.BackgroundColor3 = Theme.Colors.BackgroundSecondary
-		rowFrame.BorderSizePixel = 0
-		rowFrame.Parent = scrollingFrame
+		local statusText = isUnlocked and "РАЗБЛОКИРОВАНО" or string.format("Цена: $%s", formatNumber(cost))
+		local statusColor = isUnlocked and Theme.Colors.Success or Theme.Colors.Warning
 
-		local rowCorner = Instance.new("UICorner")
-		rowCorner.CornerRadius = Theme.Sizes.CornerRadius
-		rowCorner.Parent = rowFrame
+		local actionText = isUnlocked and "ТЕЛЕПОРТ" or "КУПИТЬ"
+		local actionColor = isUnlocked and Theme.Colors.Success or (canAfford and Theme.Colors.Accent or Theme.Colors.Error)
 
-		local stroke = Instance.new("UIStroke")
-		stroke.Thickness = 1
-		stroke.Color = Theme.Colors.Stroke
-		stroke.Parent = rowFrame
+		rows["Zone_" .. zoneId] = React.createElement("Frame", {
+			Size = UDim2.new(1, -12, 0, 56),
+			BackgroundColor3 = Theme.Colors.BackgroundSecondary,
+			BorderSizePixel = 0,
+		}, {
+			Corner = React.createElement("UICorner", {
+				CornerRadius = Theme.Sizes.CornerRadius,
+			}),
+			Stroke = React.createElement("UIStroke", {
+				Thickness = 1,
+				Color = Theme.Colors.Stroke,
+			}),
 
-		local nameLabel = Instance.new("TextLabel")
-		nameLabel.Size = UDim2.new(0, 160, 0, 22)
-		nameLabel.Position = UDim2.new(0, 12, 0, 6)
-		nameLabel.BackgroundTransparency = 1
-		nameLabel.Font = Theme.Fonts.Title
-		nameLabel.TextSize = 13
-		nameLabel.TextColor3 = Theme.Colors.Text
-		nameLabel.TextXAlignment = Enum.TextXAlignment.Left
-		nameLabel.Text = item.Name
-		nameLabel.Parent = rowFrame
+			NameLabel = React.createElement("TextLabel", {
+				Size = UDim2.new(0, 160, 0, 22),
+				Position = UDim2.new(0, 12, 0, 6),
+				BackgroundTransparency = 1,
+				Font = Theme.Fonts.Title,
+				TextSize = 13,
+				TextColor3 = Theme.Colors.Text,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				Text = item.Name,
+			}),
 
-		local statusLabel = Instance.new("TextLabel")
-		statusLabel.Size = UDim2.new(0, 160, 0, 20)
-		statusLabel.Position = UDim2.new(0, 12, 1, -24)
-		statusLabel.BackgroundTransparency = 1
-		statusLabel.Font = Theme.Fonts.Body
-		statusLabel.TextSize = 11
-		statusLabel.TextXAlignment = Enum.TextXAlignment.Left
-		statusLabel.Parent = rowFrame
+			StatusLabel = React.createElement("TextLabel", {
+				Size = UDim2.new(0, 160, 0, 20),
+				Position = UDim2.new(0, 12, 1, -24),
+				BackgroundTransparency = 1,
+				Font = Theme.Fonts.Body,
+				TextSize = 11,
+				TextColor3 = statusColor,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				Text = statusText,
+			}),
 
-		zoneRows[zoneId] = {
-			Frame = rowFrame,
-			StatusLabel = statusLabel,
-			ActionButton = nil
-		}
+			ActionButton = React.createElement(Button, {
+				Text = actionText,
+				Color = actionColor,
+				Size = UDim2.new(0, 100, 0, 36),
+				Position = UDim2.new(1, -110, 0.5, -18),
+				OnClick = function()
+					if isUnlocked then
+						teleportRequest:FireServer(zoneId)
+						if onClose then onClose() end
+					else
+						if canAfford then
+							buyZoneRequest:FireServer(zoneId)
+						else
+							UIManager.ShowToast("Не хватает монет для покупки этой зоны!", "Error")
+						end
+					end
+				end
+			})
+		})
 	end
 
-	scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, #sortedZones * 66)
-
-	player:GetAttributeChangedSignal("Money"):Connect(updateAllZones)
-	for zoneId, _ in pairs(LocationConfig) do
-		player:GetAttributeChangedSignal("Unlocked_" .. zoneId):Connect(function()
-			updateZoneRow(zoneId)
-		end)
-	end
-
-	updateAllZones()
+	return React.createElement(Panel, {
+		Title = "ТЕЛЕПОРТАЦИЯ",
+		Size = UDim2.new(0, 380, 0, 300),
+		Position = UDim2.new(0.5, 0, 0.5, 0),
+		Visible = true,
+		OnClose = onClose,
+	}, {
+		Scroll = React.createElement("ScrollingFrame", {
+			Size = UDim2.new(1, 0, 1, -10),
+			Position = UDim2.new(0, 0, 0, 5),
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			ScrollBarThickness = 6,
+			CanvasSize = UDim2.new(0, 0, 0, #sortedZones * 66),
+		}, rows)
+	})
 end
 
-TeleportWindow.init()
-
 return TeleportWindow
+

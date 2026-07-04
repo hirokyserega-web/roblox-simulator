@@ -20,6 +20,7 @@ Theme.Fonts = {
 	Secondary = Enum.Font.GothamMedium,
 	Title = Enum.Font.FredokaOne,
 	Body = Enum.Font.GothamMedium,
+	Bold = Enum.Font.FredokaOne,
 }
 Theme.Sizes = {
 	CornerRadius = UDim.new(0, 12),

@@ -1,79 +1,79 @@
--- Candy Item Card Component
-local TweenService = game:GetService("TweenService")
+-- Candy Item Card Component (React version)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local React = require(ReplicatedStorage.Packages.React)
 local Theme = require(script.Parent.Parent.theme.Theme)
 
-local CardFactory = {}
+local function ItemCard(props)
+	local title = props.Title or "ITEM"
+	local rarity = props.Rarity or "Common"
+	local subtext = props.Subtext or ""
+	local iconColor = props.IconColor or Theme.Colors.Text
+	local equipped = props.Equipped or false
 
-function CardFactory.create(options)
-	local title = options.Title or "ITEM"
-	local rarity = options.Rarity or "Common"
-	local subtext = options.Subtext or ""
-	local iconColor = options.IconColor or Theme.Colors.Text
-	local equipped = options.Equipped or false
-	local parent = options.Parent
+	local strokeColor = equipped and Theme.Colors.Success or Theme.Colors.Stroke
+	local strokeThickness = equipped and 3 or 2
 
-	local container = Instance.new("TextButton")
-	container.Name = "Card_" .. title
-	container.Size = UDim2.new(0, 95, 0, 110)
-	container.BackgroundColor3 = Theme.Colors.Panel
-	container.AutoButtonColor = false
-	container.Text = ""
-	container.Parent = parent
+	return React.createElement("TextButton", {
+		Name = "Card_" .. title,
+		Size = UDim2.new(0, 95, 0, 110),
+		BackgroundColor3 = Theme.Colors.Panel,
+		AutoButtonColor = false,
+		Text = "",
 
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = Theme.Sizes.CornerRadius
-	corner.Parent = container
+		[React.Event.Activated] = function()
+			if props.OnClick then props.OnClick() end
+		end,
+	}, {
+		Corner = React.createElement("UICorner", {
+			CornerRadius = Theme.Sizes.CornerRadius,
+		}),
+		Stroke = React.createElement("UIStroke", {
+			Color = strokeColor,
+			Thickness = strokeThickness,
+		}),
 
-	local stroke = Instance.new("UIStroke")
-	stroke.Color = equipped and Theme.Colors.Success or Theme.Colors.Stroke
-	stroke.Thickness = equipped and 3 or 2
-	stroke.Parent = container
+		TitleLabel = React.createElement("TextLabel", {
+			Size = UDim2.new(1, 0, 0, 20),
+			Position = UDim2.new(0, 0, 0, 5),
+			BackgroundTransparency = 1,
+			Text = title,
+			Font = Theme.Fonts.Bold,
+			TextSize = 12,
+			TextColor3 = Theme.RarityColors[rarity] or Theme.Colors.Text,
+		}),
 
-	local titleLabel = Instance.new("TextLabel")
-	titleLabel.Size = UDim2.new(1, 0, 0, 20)
-	titleLabel.Position = UDim2.new(0, 0, 0, 5)
-	titleLabel.BackgroundTransparency = 1
-	titleLabel.Text = title
-	titleLabel.Font = Theme.Fonts.Bold
-	titleLabel.TextSize = 12
-	titleLabel.TextColor3 = Theme.RarityColors[rarity] or Theme.Colors.Text
-	titleLabel.Parent = container
+		Icon = React.createElement("Frame", {
+			Size = UDim2.new(0, 40, 0, 40),
+			Position = UDim2.new(0.5, 0, 0.45, 0),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			BackgroundColor3 = iconColor,
+		}, {
+			Corner = React.createElement("UICorner", {
+				CornerRadius = UDim.new(1, 0),
+			})
+		}),
 
-	local icon = Instance.new("Frame")
-	icon.Size = UDim2.new(0, 40, 0, 40)
-	icon.Position = UDim2.new(0.5, 0, 0.45, 0)
-	icon.AnchorPoint = Vector2.new(0.5, 0.5)
-	icon.BackgroundColor3 = iconColor
-	icon.Parent = container
-	Instance.new("UICorner", icon).CornerRadius = UDim.new(1, 0)
+		Sub = React.createElement("TextLabel", {
+			Size = UDim2.new(1, 0, 0, 15),
+			Position = UDim2.new(0, 0, 1, -20),
+			BackgroundTransparency = 1,
+			Text = subtext,
+			Font = Theme.Fonts.Main,
+			TextSize = 10,
+			TextColor3 = Theme.Colors.TextSecondary,
+		}),
 
-	local sub = Instance.new("TextLabel")
-	sub.Size = UDim2.new(1, 0, 0, 15)
-	sub.Position = UDim2.new(0, 0, 1, -20)
-	sub.BackgroundTransparency = 1
-	sub.Text = subtext
-	sub.Font = Theme.Fonts.Main
-	sub.TextSize = 10
-	sub.TextColor3 = Theme.Colors.TextSecondary
-	sub.Parent = container
-
-	if equipped then
-		local eqLabel = Instance.new("TextLabel")
-		eqLabel.Size = UDim2.new(1, 0, 0, 15)
-		eqLabel.Position = UDim2.new(0, 0, 0, 20)
-		eqLabel.BackgroundTransparency = 1
-		eqLabel.Text = "EQUIPPED"
-		eqLabel.Font = Theme.Fonts.Bold
-		eqLabel.TextSize = 9
-		eqLabel.TextColor3 = Theme.Colors.Success
-		eqLabel.Parent = container
-	end
-
-	container.MouseButton1Click:Connect(function()
-		if options.OnClick then options.OnClick() end
-	end)
-
-	return container
+		EquippedLabel = equipped and React.createElement("TextLabel", {
+			Size = UDim2.new(1, 0, 0, 15),
+			Position = UDim2.new(0, 0, 0, 20),
+			BackgroundTransparency = 1,
+			Text = "EQUIPPED",
+			Font = Theme.Fonts.Bold,
+			TextSize = 9,
+			TextColor3 = Theme.Colors.Success,
+		}) or nil
+	})
 end
 
-return CardFactory
+return ItemCard
+

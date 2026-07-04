@@ -1,9 +1,9 @@
--- Candy 3D Button Component
-local TweenService = game:GetService("TweenService")
+-- Candy 3D Button Component (React version)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
-local Theme = require(script.Parent.Parent.theme.Theme)
 
-local ButtonFactory = {}
+local React = require(ReplicatedStorage.Packages.React)
+local Theme = require(script.Parent.Parent.theme.Theme)
 
 local function playSound(id)
 	if not id or id == "" then return end
@@ -15,83 +15,93 @@ local function playSound(id)
 	sound.Ended:Connect(function() sound:Destroy() end)
 end
 
-function ButtonFactory.create(options)
-	local text = options.Text or "BUTTON"
-	local baseColor = options.Color or Theme.Colors.Purple
-	local size = options.Size or UDim2.new(0, 160, 0, 50)
-	local position = options.Position or UDim2.new(0, 0, 0, 0)
-	local parent = options.Parent
-	local enabled = true
+local function Button(props)
+	local text = props.Text or "BUTTON"
+	local baseColor = props.Color or Theme.Colors.Accent
+	local size = props.Size or UDim2.new(0, 160, 0, 50)
+	local position = props.Position or UDim2.new(0, 0, 0, 0)
+	local enabled = props.Enabled ~= false
+	local textScale = props.TextScale ~= false
+	local textSize = props.TextSize or 18
+	local layoutOrder = props.LayoutOrder
 
-	local container = Instance.new("Frame")
-	container.Name = "CandyButton_" .. text
-	container.Size = size
-	container.Position = position
-	container.BackgroundTransparency = 1
-	container.Parent = parent
-
-	local shadow = Instance.new("Frame")
-	shadow.Name = "Shadow"
-	shadow.Size = UDim2.new(1, 0, 1, 0)
-	shadow.Position = UDim2.new(0, 0, 0, Theme.Sizes.ButtonDepth)
-	shadow.BackgroundColor3 = Theme.Colors.Stroke
-	shadow.Parent = container
-	Instance.new("UICorner", shadow).CornerRadius = Theme.Sizes.CornerButton
-
-	local face = Instance.new("TextButton")
-	face.Name = "ButtonTop" -- Alias for ShopWindow compatibility
-	face.Size = UDim2.new(1, 0, 1, 0)
-	face.BackgroundColor3 = baseColor
-	face.AutoButtonColor = false
-	face.Text = text
-	face.Font = Theme.Fonts.Bold
-	face.TextSize = 18
-	face.TextColor3 = Theme.Colors.Text
-	face.Parent = container
-	Instance.new("UICorner", face).CornerRadius = Theme.Sizes.CornerButton
+	local isPressed, setPressed = React.useState(false)
 	
-	local stroke = Instance.new("UIStroke", face)
-	stroke.Color = Theme.Colors.Stroke
-	stroke.Thickness = Theme.Sizes.StrokeThickness
-	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	local buttonDepth = Theme.Sizes.ButtonDepth or 4
+	local clickDepth = buttonDepth / 2
 
-	local gradient = Instance.new("UIGradient", face)
-	gradient.Color = ColorSequence.new({
-		ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
-		ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 200, 200))
+	local facePosition = isPressed and UDim2.new(0, 0, 0, clickDepth) or UDim2.new(0, 0, 0, 0)
+	local faceColor = enabled and baseColor or Color3.fromRGB(150, 150, 150)
+
+	return React.createElement("Frame", {
+		Name = "CandyButton_" .. text,
+		Size = size,
+		Position = position,
+		BackgroundTransparency = 1,
+		LayoutOrder = layoutOrder,
+	}, {
+		Shadow = enabled and React.createElement("Frame", {
+			Name = "Shadow",
+			Size = UDim2.new(1, 0, 1, 0),
+			Position = UDim2.new(0, 0, 0, buttonDepth),
+			BackgroundColor3 = Theme.Colors.Stroke,
+			BorderSizePixel = 0,
+		}, {
+			Corner = React.createElement("UICorner", {
+				CornerRadius = Theme.Sizes.CornerButton,
+			})
+		}) or nil,
+
+		Face = React.createElement("TextButton", {
+			Name = "ButtonTop",
+			Size = UDim2.new(1, 0, 1, 0),
+			Position = facePosition,
+			BackgroundColor3 = faceColor,
+			AutoButtonColor = false,
+			Text = text,
+			Font = Theme.Fonts.Title,
+			TextSize = textSize,
+			TextScaled = textScale,
+			TextColor3 = Theme.Colors.Text,
+			BorderSizePixel = 0,
+
+			[React.Event.MouseButton1Down] = function()
+				if not enabled then return end
+				setPressed(true)
+				playSound(Theme.Sounds.Click)
+			end,
+
+			[React.Event.MouseButton1Up] = function()
+				setPressed(false)
+			end,
+
+			[React.Event.MouseLeave] = function()
+				setPressed(false)
+			end,
+
+			[React.Event.Activated] = function()
+				if not enabled then return end
+				if props.OnClick then props.OnClick() end
+			end,
+		}, {
+			Corner = React.createElement("UICorner", {
+				CornerRadius = Theme.Sizes.CornerButton,
+			}),
+			Stroke = React.createElement("UIStroke", {
+				Color = Theme.Colors.Stroke,
+				Thickness = Theme.Sizes.StrokeThickness,
+				ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+			}),
+			Gradient = React.createElement("UIGradient", {
+				Color = ColorSequence.new({
+					ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
+					ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 200, 200))
+				}),
+				Rotation = 90,
+			})
+		})
 	})
-	gradient.Rotation = 90
-
-	local api = {}
-	api.Instance = face
-
-	function api.SetEnabled(value)
-		enabled = value
-		face.Active = value
-		face.BackgroundColor3 = value and baseColor or Color3.fromRGB(150, 150, 150)
-		shadow.Visible = value
-	end
-
-	function api.Destroy()
-		container:Destroy()
-	end
-
-	face.MouseButton1Down:Connect(function()
-		if not enabled then return end
-		face.Position = UDim2.new(0, 0, 0, Theme.Sizes.ButtonDepth / 2)
-		playSound(Theme.Sounds.Click)
-	end)
-
-	face.MouseButton1Up:Connect(function()
-		face.Position = UDim2.new(0, 0, 0, 0)
-	end)
-
-	face.MouseButton1Click:Connect(function()
-		if not enabled then return end
-		if options.OnClick then options.OnClick() end
-	end)
-
-	return api
 end
 
-return ButtonFactory
+return Button
+
