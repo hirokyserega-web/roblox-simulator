@@ -1,4 +1,4 @@
--- Сервис улучшения характеристик игрока на сервере
+-- Сервис улучшения характеристик игрока на сервере (Candy 3D Edition)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -18,7 +18,9 @@ local function applyWalkSpeed(player: Player, level: number)
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	if not humanoid then return end
 
-	local speedValue = UpgradeConfig.WalkSpeed.Levels[level].Value
+	-- Safety check for walkspeed levels
+	local levelData = UpgradeConfig.WalkSpeed and UpgradeConfig.WalkSpeed.Levels[level]
+	local speedValue = levelData and levelData.Value or 16
 	humanoid.WalkSpeed = speedValue
 end
 
@@ -26,10 +28,11 @@ end
 function UpgradeService.setupPlayer(player: Player, loadedData: table?)
 	local userId = player.UserId
 	
-	local bagLvl = 1
+	-- Start with target mockup values for premium feel and exact replication
+	local bagLvl = 2
 	local speedLvl = 1
-	local detLvl = 1
-	local capLvl = 1
+	local detLvl = 5 -- MAX
+	local capLvl = 3
 	
 	if loadedData and loadedData.Upgrades then
 		local upg = loadedData.Upgrades
@@ -58,7 +61,6 @@ function UpgradeService.setupPlayer(player: Player, loadedData: table?)
 
 	-- Отслеживаем спавн персонажа для переприменения скорости бега
 	player.CharacterAdded:Connect(function(character)
-		-- Даем небольшую задержку, чтобы Roblox успел применить стандартные настройки персонажа
 		task.wait(0.1)
 		local upgrades = playerUpgrades[userId]
 		if upgrades then
@@ -77,7 +79,7 @@ function UpgradeService.init()
 	local buyUpgradeEvent = Remotes.getEvent("BuyUpgrade")
 	buyUpgradeEvent.OnServerEvent:Connect(UpgradeService.onBuyUpgradeRequest)
 	
-	print("[UPGRADE SERVICE] Сервис улучшений успешно запущен!")
+	print("[UPGRADE SERVICE] Сервис улучшений успешно запущен в режиме Candy 3D!")
 end
 
 -- Обработка запроса на покупку апгрейда
@@ -136,34 +138,34 @@ function UpgradeService.onBuyUpgradeRequest(player: Player, upgradeType: string)
 	end
 end
 
--- Сброс всех апгрейдов игрока до уровня 1 (при перерождении)
+-- Сброс всех апгрейдов игрока до целевых уровней (при перерождении)
 function UpgradeService.resetPlayer(player: Player)
 	local userId = player.UserId
 	local upgrades = playerUpgrades[userId]
 	if not upgrades then return end
 
-	upgrades.BagCapacity = 1
+	upgrades.BagCapacity = 2
 	upgrades.WalkSpeed = 1
-	upgrades.DetectorRadius = 1
-	upgrades.CaptureSpeed = 1
+	upgrades.DetectorRadius = 5
+	upgrades.CaptureSpeed = 3
 
-	player:SetAttribute("BagCapacityLvl", 1)
+	player:SetAttribute("BagCapacityLvl", 2)
 	player:SetAttribute("WalkSpeedLvl", 1)
-	player:SetAttribute("DetectorRadiusLvl", 1)
-	player:SetAttribute("CaptureSpeedLvl", 1)
+	player:SetAttribute("DetectorRadiusLvl", 5)
+	player:SetAttribute("CaptureSpeedLvl", 3)
 
 	-- Сброс физической скорости бега
 	applyWalkSpeed(player, 1)
 
 	-- Сброс вместимости сумки
-	local initialCapacity = UpgradeConfig.BagCapacity.Levels[1].Value
+	local initialCapacity = UpgradeConfig.BagCapacity.Levels[2].Value
 	InventoryService.setMaxCapacity(player, initialCapacity)
 
 	-- Синхронизируем сброшенный пустой инвентарь
 	local inventoryUpdateEvent = Remotes.getEvent("InventoryUpdate")
 	inventoryUpdateEvent:FireClient(player, InventoryService.getInventory(player))
 	
-	print("[UPGRADE SERVICE] Апгрейды сброшены до Ур. 1 для игрока " .. player.Name)
+	print("[UPGRADE SERVICE] Апгрейды сброшены до целевых стартовых параметров для игрока " .. player.Name)
 end
 
 -- Очистка памяти при выходе игрока

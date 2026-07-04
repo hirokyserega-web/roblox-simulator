@@ -1,33 +1,20 @@
--- Общие настройки игры Ghost Hunter Simulator (Фаза 6)
+-- General settings for Ghost Hunter Simulator (Candy 3D Edition)
 local GameConfig = {
-	-- Стартовые параметры игрока
-	StartingMoney = 0,
-	StartingCrystals = 0,
+	-- Starting parameters matching the prompt
+	StartingMoney = 100000,
+	StartingCrystals = 500,
 	DefaultBagCapacity = 10,
 
-	-- Настройки спавна привидений
-	SpawnInterval = 3,           -- Интервал спавна в секундах
-	MaxGhosts = 10,              -- Максимальное количество привидений на карте
+	-- Ghost spawn settings
+	SpawnInterval = 3,           -- Seconds between spawns
+	MaxGhosts = 10,              -- Max ghosts on map
 
-	-- Настройки детектора
-	DetectorRadius = 50,         -- Радиус действия детектора в студах
+	-- Detector settings
+	DetectorRadius = 50,         -- Base detector radius
 
-	-- Настройки поимки ловушкой
-	TrapRange = 20,              -- Радиус действия ловушки в студах
-	CaptureTime = 2.0,           -- Время удерживания кнопки для полной поимки призрака (сек)
-
-	-- Параметры тестовой карты
-	SpawnZoneSize = Vector3.new(60, 1, 60),
-	SpawnZonePosition = Vector3.new(0, 0.5, 0),
-
-	-- Параметры черного рынка (Зоны продажи)
-	BlackMarketPosition = Vector3.new(30, 0.5, 30),
-	BlackMarketSize = Vector3.new(10, 1, 10),
-	SellDistance = 15,           -- Максимально допустимая дистанция до зоны продажи
-
-	-- Параметры глобального лидерборда
-	LeaderboardPosition = Vector3.new(-25, 6, -25),
-	LeaderboardSize = Vector3.new(16, 11, 1),
+	-- Trap / Capture settings
+	TrapRange = 25,              -- Catch range
+	SellMultiplier = 1.0,        -- Base money multiplier for selling ghosts
 }
 
 return GameConfig

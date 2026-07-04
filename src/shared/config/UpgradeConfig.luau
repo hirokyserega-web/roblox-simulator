@@ -1,58 +1,44 @@
--- Конфигурация уровней улучшений для Ghost Hunter Simulator
+-- Configuration of upgrade levels for Ghost Hunter Simulator (Candy 3D Edition)
 local UpgradeConfig = {
-	-- Вместимость рюкзака (Bag Capacity)
+	-- Backpack Capacity
 	BagCapacity = {
-		DisplayName = "Вместимость сумки",
-		Description = "Позволяет переносить больше призраков за раз.",
+		DisplayName = "BACKPACK",
+		Description = "Allows carrying more ghosts at once.",
 		MaxLevel = 5,
 		Levels = {
 			[1] = { Value = 10, Cost = 0 },
-			[2] = { Value = 20, Cost = 150 },
-			[3] = { Value = 45, Cost = 400 },
-			[4] = { Value = 90, Cost = 1000 },
-			[5] = { Value = 200, Cost = 2500 }
+			[2] = { Value = 10, Cost = 750 }, -- Level 2 -> Level 3 costs 750
+			[3] = { Value = 25, Cost = 1500 },
+			[4] = { Value = 50, Cost = 3000 },
+			[5] = { Value = 100, Cost = 6000 }
 		}
 	},
 
-	-- Скорость бега (WalkSpeed)
-	WalkSpeed = {
-		DisplayName = "Скорость бега",
-		Description = "Увеличивает скорость передвижения вашего персонажа.",
-		MaxLevel = 5,
-		Levels = {
-			[1] = { Value = 16, Cost = 0 },
-			[2] = { Value = 20, Cost = 100 },
-			[3] = { Value = 24, Cost = 250 },
-			[4] = { Value = 28, Cost = 600 },
-			[5] = { Value = 32, Cost = 1500 }
-		}
-	},
-
-	-- Радиус действия детектора (Detector Radius)
+	-- Detector range / radius
 	DetectorRadius = {
-		DisplayName = "Радиус детектора",
-		Description = "Позволяет обнаруживать призраков на большем расстоянии.",
+		DisplayName = "DETECTOR",
+		Description = "Detects ghosts from a further distance.",
 		MaxLevel = 5,
 		Levels = {
 			[1] = { Value = 50, Cost = 0 },
-			[2] = { Value = 70, Cost = 120 },
-			[3] = { Value = 95, Cost = 300 },
-			[4] = { Value = 125, Cost = 700 },
-			[5] = { Value = 160, Cost = 1800 }
+			[2] = { Value = 70, Cost = 250 },
+			[3] = { Value = 95, Cost = 500 },
+			[4] = { Value = 125, Cost = 1000 },
+			[5] = { Value = 160, Cost = 2000 } -- Level 5 is MAX
 		}
 	},
 
-	-- Скорость захвата ловушкой (Capture Speed - снижает время захвата призрака)
+	-- Trap / Ghost Vacuum speed
 	CaptureSpeed = {
-		DisplayName = "Сила ловушки",
-		Description = "Сокращает время удерживания кнопки для ловли призрака.",
+		DisplayName = "GHOST VACUUM",
+		Description = "Reduces the time required to capture a ghost.",
 		MaxLevel = 5,
 		Levels = {
-			[1] = { Value = 2.0, Cost = 0 },   -- Время удержания 2 секунды
-			[2] = { Value = 1.6, Cost = 150 }, -- 1.6 секунды
-			[3] = { Value = 1.2, Cost = 350 }, -- 1.2 секунды
-			[4] = { Value = 0.8, Cost = 800 }, -- 0.8 секунды
-			[5] = { Value = 0.4, Cost = 2000 } -- 0.4 секунды
+			[1] = { Value = 2.0, Cost = 0 },
+			[2] = { Value = 1.5, Cost = 500 },
+			[3] = { Value = 1.0, Cost = 1000 }, -- Level 3 -> Level 4 costs 1000
+			[4] = { Value = 0.6, Cost = 2000 },
+			[5] = { Value = 0.3, Cost = 4000 }
 		}
 	}
 }

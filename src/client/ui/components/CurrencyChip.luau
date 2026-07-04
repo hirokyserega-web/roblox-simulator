@@ -3,67 +3,95 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
 local Theme = require(script.Parent.Parent.theme.Theme)
 
+local function formatNumber(n)
+	local left, num, right = string.match(tostring(n), '^([^%d]*%d+)(%d*)(.-)$')
+	return left .. (num:reverse():gsub('(%d%d%d)', '%1,'):reverse()) .. right
+end
+
 local function CurrencyChip(props)
 	local currencyType = props.CurrencyType or "Money"
-	local size = props.Size or UDim2.new(0, 150, 0, 40)
+	local size = props.Size or UDim2.new(0, 220, 0, 48) -- Wider size to accommodate +500
 	local position = props.Position or UDim2.new(0, 0, 0, 0)
 	local value = props.Value or 0
 	local layoutOrder = props.LayoutOrder
 
-	local icons = {
-		Money = "rbxassetid://15264875322",
-		Crystals = "rbxassetid://15264875154",
-	}
-	
-	local icon = icons[currencyType] or ""
+	local isMoney = currencyType == "Money"
+	local icon = isMoney and "💵" or "💎"
+	local iconColor = isMoney and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(0, 229, 255)
+
+	-- Custom text layout incorporating the +500 indicator for Money
+	local displayText = ""
+	if isMoney then
+		displayText = string.format("$ %s <font color='#00FF55'>+500</font>", formatNumber(value))
+	else
+		displayText = string.format("💎 %s", formatNumber(value))
+	end
 
 	return React.createElement("Frame", {
-		Name = "CurrencyChip_" .. currencyType,
+		Name = currencyType .. "Chip",
 		Size = size,
 		Position = position,
-		BackgroundColor3 = Theme.Colors.Background,
-		BorderSizePixel = 0,
 		LayoutOrder = layoutOrder,
+		BackgroundColor3 = Theme.Colors.BackgroundSecondary,
+		BorderSizePixel = 0,
 	}, {
 		Corner = React.createElement("UICorner", {
-			CornerRadius = Theme.Sizes.CornerPill or UDim.new(0, 20),
+			CornerRadius = UDim.new(0.5, 0), -- Rounded pill
 		}),
 		Stroke = React.createElement("UIStroke", {
 			Color = Theme.Colors.Stroke,
-			Thickness = Theme.Sizes.StrokeThickness,
+			Thickness = 3,
+		}),
+		
+		-- Icon Container
+		IconLabel = React.createElement("TextLabel", {
+			Name = "IconLabel",
+			Size = UDim2.new(0, 36, 0, 36),
+			Position = UDim2.new(0, 6, 0.5, -18),
+			BackgroundTransparency = 1,
+			Text = icon,
+			TextSize = 24,
+			Font = Theme.Fonts.Main,
+			TextColor3 = iconColor,
+			ZIndex = 2,
 		}),
 
-		Icon = React.createElement("ImageLabel", {
-			Name = "Icon",
-			Size = UDim2.new(0, 28, 0, 28),
-			Position = UDim2.new(0, 6, 0.5, 0),
-			AnchorPoint = Vector2.new(0, 0.5),
+		-- Value with rich text
+		ValueLabel = React.createElement("TextLabel", {
+			Name = "ValueLabel",
+			Size = UDim2.new(1, -50, 1, 0),
+			Position = UDim2.new(0, 44, 0, 0),
 			BackgroundTransparency = 1,
-			Image = icon,
-		}),
-
-		Value = React.createElement("TextLabel", {
-			Name = "Value",
-			Size = UDim2.new(1, -45, 1, 0),
-			Position = UDim2.new(0, 40, 0, 0),
-			BackgroundTransparency = 1,
-			Text = tostring(value),
+			Text = displayText,
+			RichText = true,
 			Font = Theme.Fonts.Main,
 			TextColor3 = Theme.Colors.Text,
+			TextSize = 20,
 			TextXAlignment = Enum.TextXAlignment.Left,
-			TextScaled = true,
+			ZIndex = 2,
 		}, {
-			Stroke = React.createElement("UIStroke", {
-				Color = Theme.Colors.Stroke,
-				Thickness = 1.2,
-			}),
-			Padding = React.createElement("UIPadding", {
-				PaddingTop = UDim.new(0, 6),
-				PaddingBottom = UDim.new(0, 6),
+			-- Inner soft text shadow
+			Shadow = React.createElement("UIStroke", {
+				Color = Color3.fromRGB(0, 0, 0),
+				Thickness = 1.5,
+			})
+		}),
+
+		-- Glossy light reflection overlay
+		GlossReflection = React.createElement("Frame", {
+			Name = "GlossReflection",
+			Size = UDim2.new(1, 0, 0.5, 0),
+			Position = UDim2.new(0, 0, 0, 0),
+			BackgroundTransparency = 0.85,
+			BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+			BorderSizePixel = 0,
+			ZIndex = 3,
+		}, {
+			Corner = React.createElement("UICorner", {
+				CornerRadius = UDim.new(0.5, 0),
 			})
 		})
 	})
 end
 
 return CurrencyChip
-
