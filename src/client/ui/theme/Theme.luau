@@ -7,20 +7,20 @@ Theme.Colors = {
 	Panel = Color3.fromHex("1D1F38"),
 	PanelOpacity = 0.94,
 	
-	-- Vibrant Button Colors
-	Success = Color3.fromHex("00D250"),      -- Green for GHOST VACUUM BUY button
-	Error = Color3.fromHex("FF004B"),        -- Red for BACKPACK BUY NOT ENOUGH button
-	Warning = Color3.fromHex("FFB300"),      -- Yellow/Gold for DETECTOR MAX button
-	Info = Color3.fromHex("00B0FF"),         -- Blue for capture progress bar
-	Accent = Color3.fromHex("8F00FF"),       -- Purple for Rebirth neon button
+	-- Vibrant Button Colors - Lightened for better contrast
+	Success = Color3.fromHex("00FF62"),      -- Brighter Green
+	Error = Color3.fromHex("FF3B3B"),        -- Brighter Red
+	Warning = Color3.fromHex("FFD700"),      -- Gold
+	Info = Color3.fromHex("00D9FF"),         -- Brighter Blue
+	Accent = Color3.fromHex("B347FF"),       -- Brighter Purple (Neon)
 	
 	Text = Color3.fromHex("FFFFFF"),
-	TextSecondary = Color3.fromHex("A2A8C9"),
-	Stroke = Color3.fromHex("2E325C"),
+	TextSecondary = Color3.fromHex("D1D5F0"), -- Lighter TextSecondary
+	Stroke = Color3.fromHex("3D4380"),       -- Lighter Stroke
 }
 
 Theme.RarityColors = {
-	Common = Color3.fromHex("9D9D9D"),
+	Common = Color3.fromHex("C4C4C4"),
 	Uncommon = Color3.fromHex("3AE374"),
 	Rare = Color3.fromHex("1790FF"),
 	Epic = Color3.fromHex("9B51E0"),
@@ -40,11 +40,10 @@ Theme.Sizes = {
 	StrokeThickness = 3,
 }
 
-
 Theme.Sounds = {
-	Click = "rbxassetid://6042053626",      -- Beautiful bubble click sound
-	Success = "rbxassetid://6042054215",    -- Catch success
-	Upgrade = "rbxassetid://5153734005",    -- Buy upgrade chime
+	Click = "rbxassetid://6042053626",
+	Success = "rbxassetid://6042054215",
+	Upgrade = "rbxassetid://5153734005",
 }
 
 return Theme
