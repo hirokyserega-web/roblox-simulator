@@ -44,7 +44,7 @@ function LocationService.init()
 
 	-- Генерация локаций на основе конфига
 	for zoneId, config in pairs(LocationConfig) do
-		local zonePart = Workspace:FindFirstChild("Zone_" .. zoneId)
+		local zonePart = zonesFolder:FindFirstChild("Zone_" .. zoneId)
 		if not zonePart then
 			zonePart = Instance.new("Part")
 			zonePart.Name = "Zone_" .. zoneId
@@ -149,7 +149,7 @@ function LocationService.init()
 		if not config then return end
 
 		-- Проверяем, разблокирована ли локация (или это стартовая)
-		local isUnlocked = (zoneId == "StarterArea") or (player:GetAttribute("Unlocked_" .. zoneId) == true)
+		local isUnlocked = (zoneId == "StarterArea") or (player:GetAttribute("Zone_" .. zoneId) == true)
 		if isUnlocked then
 			local char = player.Character
 			if char and char:FindFirstChild("HumanoidRootPart") then
@@ -173,7 +173,7 @@ function LocationService.processZonePurchase(player: Player, zoneId: string)
 	if not config then return end
 
 	-- Проверяем, разблокирована ли уже
-	if player:GetAttribute("Unlocked_" .. zoneId) == true then
+	if player:GetAttribute("Zone_" .. zoneId) == true then
 		local notificationEvent = Remotes.getEvent("ShowNotification")
 		notificationEvent:FireClient(player, "Вы уже разблокировали эту локацию!")
 		return
@@ -184,7 +184,7 @@ function LocationService.processZonePurchase(player: Player, zoneId: string)
 	
 	if success then
 		-- Выставляем статус разблокировки
-		player:SetAttribute("Unlocked_" .. zoneId, true)
+		player:SetAttribute("Zone_" .. zoneId, true)
 		
 		print(string.format("[LOCATION SERVICE] Игрок %s разблокировал зону %s за %d монет", player.Name, zoneId, cost))
 

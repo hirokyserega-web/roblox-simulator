@@ -118,11 +118,30 @@ function InventoryService.getInventory(player: Player)
 	return inventories[player.UserId]
 end
 
-
 -- Регистрация RemoteFunction для получения данных клиентом
 Remotes.getFunction("GetInventoryData").OnServerInvoke = function(player)
 	return InventoryService.getInventory(player)
 end
 
-return InventoryService
+-- Установить максимальную вместимость
+function InventoryService.setMaxCapacity(player: Player, capacity: number)
+	local userId = player.UserId
+	local inv = inventories[userId]
+	if not inv then
+		inventories[userId] = {
+			Ghosts = {},
+			MaxCapacity = capacity
+		}
+	else
+		inv.MaxCapacity = capacity
+	end
+	
+	-- Уведомляем клиента об изменении лимита
+	Remotes.getEvent("InventoryUpdate"):FireClient(player, inventories[userId])
+end
 
+function InventoryService.removePlayer(player)
+    inventories[player.UserId] = nil
+end
+
+return InventoryService

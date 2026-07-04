@@ -14,7 +14,11 @@ local GameConfig = {
 
 	-- Trap / Capture settings
 	TrapRange = 25,              -- Catch range
-	SellMultiplier = 1.0,        -- Base money multiplier for selling ghosts
+	SellMultiplier = 1.0,
+
+	-- Spawn Zone Settings
+	SpawnZonePosition = Vector3.new(0, 5, 0),
+	SpawnZoneSize = Vector3.new(10, 1, 10),
 }
 
 return GameConfig

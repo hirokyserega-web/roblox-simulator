@@ -124,7 +124,7 @@ function GhostSpawner.setupPlayer(player: Player)
 
 				-- Валидация античита / разблокировки:
 				-- Призраки не будут спавниться в заблокированных для игрока локациях!
-				local isUnlocked = (config.Cost == 0) or (player:GetAttribute("Unlocked_" .. zoneId) == true)
+				local isUnlocked = (config.Cost == 0) or (player:GetAttribute("Zone_" .. zoneId) == true)
 				if isUnlocked then
 					local currentCount = getPlayerGhostsCountInZone(pFolder, zoneId)
 					if currentCount < config.MaxGhosts then

@@ -143,8 +143,8 @@ local function ShopWindow(props)
 					OnClick = function()
 						if clickable then
 							-- Fire the purchase event
-							if player and Remotes.Upgrade then
-								Remotes.Upgrade:FireServer(key)
+							if player then
+								Remotes.getEvent("BuyUpgrade"):FireServer(key)
 							end
 						end
 					end,

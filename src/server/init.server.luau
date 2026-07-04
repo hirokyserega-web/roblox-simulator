@@ -5,6 +5,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local Workspace = game:GetService("Workspace")
 
 local GameConfig = require(ReplicatedStorage.Shared.config.GameConfig)
+local LocationConfig = require(ReplicatedStorage.Shared.config.LocationConfig)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local GhostSpawner = require(ServerScriptService.Server.GhostSpawner)
 local InventoryService = require(ServerScriptService.Server.InventoryService)
@@ -29,8 +30,8 @@ local function getOrCreateSpawnZone(): Part
 	if not spawnZone then
 		spawnZone = Instance.new("Part")
 		spawnZone.Name = "SpawnZone"
-		spawnZone.Position = GameConfig.SpawnZonePosition
-		spawnZone.Size = GameConfig.SpawnZoneSize
+		spawnZone.Position = GameConfig.SpawnZonePosition or Vector3.new(0, 5, 0)
+		spawnZone.Size = GameConfig.SpawnZoneSize or Vector3.new(10, 1, 10)
 		spawnZone.Anchored = true
 		spawnZone.CanCollide = false
 		spawnZone.Transparency = 0.8
@@ -81,6 +82,9 @@ local function init()
 	-- Инициализация логики локаций
 	LocationService.init()
 
+	-- Создание спавн-зоны
+	getOrCreateSpawnZone()
+
 	-- Инициализация поведения призраков (ИИ)
 	GhostBehaviorService.init()
 	
@@ -115,6 +119,7 @@ local function init()
 		-- Инициализируем валюту и улучшения на основе загруженных данных
 		CurrencyService.setupPlayer(player, loadedData)
 		UpgradeService.setupPlayer(player, loadedData)
+		InventoryService.setupPlayer(player, loadedData and loadedData.Ghosts)
 		
 		-- Инициализируем питомцев
 		PetService.setupPlayer(player, loadedData and loadedData.Pets)
@@ -126,22 +131,21 @@ local function init()
 		PromoService.setupPlayer(player, loadedData and loadedData.ClaimedCodes)
 		DailyRewardService.setupPlayer(player, loadedData and loadedData.DailyStatus)
 
-		-- Инициализируем разблокированные локации
-		local forestUnlocked = false
-		local mansionUnlocked = false
+		-- Инициализируем разблокированные локации динамически
 		if loadedData and loadedData.Locations then
-			forestUnlocked = loadedData.Locations.ForestArea or false
-			mansionUnlocked = loadedData.Locations.MansionArea or false
+			for zoneId, unlocked in pairs(loadedData.Locations) do
+				player:SetAttribute("Zone_" .. zoneId, unlocked == true)
+			end
 		end
-		player:SetAttribute("Unlocked_ForestArea", forestUnlocked)
-		player:SetAttribute("Unlocked_MansionArea", mansionUnlocked)
 		
 		-- Инициализируем персональный спавн призраков
 		GhostSpawner.setupPlayer(player)
 
-		-- Синхронизируем пустой стартовый инвентарь
-		local inventoryUpdateEvent = Remotes.getEvent("InventoryUpdate")
-		inventoryUpdateEvent:FireClient(player, InventoryService.getInventory(player))
+		-- Синхронизируем инвентарь
+		local invData = InventoryService.getInventory(player)
+		if invData then
+			Remotes.getEvent("InventoryUpdate"):FireClient(player, invData)
+		end
 	end
 
 	Players.PlayerAdded:Connect(onPlayerAdded)
@@ -151,10 +155,7 @@ local function init()
 
 	-- Слушаем выход игроков для сохранения и очистки памяти
 	Players.PlayerRemoving:Connect(function(player)
-		-- Сохраняем данные игрока перед его выходом
 		DataService.saveData(player)
-		
-		-- Останавливаем спавнер
 		GhostSpawner.removePlayer(player)
 
 		-- Удаляем логическую папку призраков игрока

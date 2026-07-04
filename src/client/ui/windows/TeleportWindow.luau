@@ -1,3 +1,4 @@
+local LocationConfig = require(ReplicatedStorage.Shared.config.LocationConfig)
 -- Candy Teleport Window (React version)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -13,11 +14,16 @@ local function TeleportWindow(props)
 
 	if not visible then return nil end
 
-	local worlds = {
-		{ Id = "Cemetery", Name = "Night Cemetery 🌲", Unlocked = true },
-		{ Id = "Castle", Name = "Dracula Castle 🏰", Unlocked = false, Cost = 5000 },
-		{ Id = "Graveyard", Name = "Haunted Swamps 👻", Unlocked = false, Cost = 25000 },
-	}
+	local worlds = {}
+	for zoneId, config in pairs(LocationConfig) do
+		table.insert(worlds, {
+			Id = zoneId,
+			Name = config.DisplayName,
+			Unlocked = player:GetAttribute("Zone_" .. zoneId) or config.Cost == 0,
+			Cost = config.Cost
+		})
+	end
+	table.sort(worlds, function(a, b) return a.Cost < b.Cost end)
 
 	local worldCards = {
 		Layout = React.createElement("UIListLayout", {

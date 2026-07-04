@@ -76,6 +76,8 @@ local function HUD(props)
 			-- SIGNAL: STRONG Neon Green Panel
 			SignalPanel = React.createElement(DetectorWidget, {
 				Position = UDim2.new(0, 0, 0, 58),
+				Signal = signal,
+				Rarity = rarity,
 			})
 		}),
 

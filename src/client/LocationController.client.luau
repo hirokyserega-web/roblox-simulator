@@ -1,8 +1,10 @@
 -- Клиентский контроллер барьеров локаций
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
+local LocationConfig = require(ReplicatedStorage.Shared.config.LocationConfig)
 local player = Players.LocalPlayer
 
 -- Папка с локациями
@@ -16,11 +18,11 @@ if not locationsFolder then
 	end)
 end
 
--- Вспомогательная функция для плавного управления барьером (открытие/закрытие)
+-- Вспомогательная функция для плавного управления барьером
 local function updateBarrierState(zoneName: string, isUnlocked: boolean)
 	if not locationsFolder then return end
 	local barrierName = "Barrier_" .. zoneName
-	local barrier = locationsFolder:WaitForChild(barrierName, 5)
+	local barrier = locationsFolder:FindFirstChild(barrierName)
 	if not barrier or not barrier:IsA("BasePart") then return end
 
 	if isUnlocked then
@@ -28,54 +30,44 @@ local function updateBarrierState(zoneName: string, isUnlocked: boolean)
 		local tweenInfo = TweenInfo.new(1.0, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 		local tween = TweenService:Create(barrier, tweenInfo, {Transparency = 1})
 		tween:Play()
-		print("[LOCATION CLIENT] Локальный барьер открыт: " .. barrierName)
 	else
 		barrier.CanCollide = true
 		local tweenInfo = TweenInfo.new(1.0, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 		local tween = TweenService:Create(barrier, tweenInfo, {Transparency = 0.5})
 		tween:Play()
-		print("[LOCATION CLIENT] Локальный барьер закрыт: " .. barrierName)
 	end
 end
 
 -- Настройка отслеживания разблокировок зон
 local function setupLocationListeners()
-	local function checkZone(zoneName: string)
-		local attrName = "Unlocked_" .. zoneName
-		local isUnlocked = player:GetAttribute(attrName) == true
-		updateBarrierState(zoneName, isUnlocked)
+	local function checkZone(zoneId: string)
+		local attrName = "Zone_" .. zoneId
+		local isUnlocked = (LocationConfig[zoneId].Cost == 0) or (player:GetAttribute(attrName) == true)
+		updateBarrierState(zoneId, isUnlocked)
 	end
 
-	-- Слушаем изменения статусов разблокировок
-	player:GetAttributeChangedSignal("Unlocked_ForestArea"):Connect(function()
-		checkZone("ForestArea")
-	end)
-
-	player:GetAttributeChangedSignal("Unlocked_MansionArea"):Connect(function()
-		checkZone("MansionArea")
-	end)
-
-	-- Первоначальный чек при входе/спавне
-	checkZone("ForestArea")
-	checkZone("MansionArea")
+	-- Динамически слушаем все зоны из конфига
+	for zoneId, config in pairs(LocationConfig) do
+		player:GetAttributeChangedSignal("Zone_" .. zoneId):Connect(function()
+			checkZone(zoneId)
+		end)
+		-- Первоначальный чек
+		checkZone(zoneId)
+	end
 end
 
 -- Инициализация контроллера
 local function init()
-	if not locationsFolder then
-		-- Ждем появление папки в фоновом режиме, чтобы не спамить ворнингами
-		task.spawn(function()
+	task.spawn(function()
+		if not locationsFolder then
 			while not locationsFolder do
 				task.wait(0.5)
 				locationsFolder = Workspace:FindFirstChild("Locations")
 			end
-			setupLocationListeners()
-			print("[LOCATION CLIENT] Контроллер барьеров успешно запущен!")
-		end)
-	else
+		end
 		setupLocationListeners()
-		print("[LOCATION CLIENT] Контроллер барьеров успешно запущен!")
-	end
+		print("[LOCATION CLIENT] Контроллер барьеров запущен динамически!")
+	end)
 end
 
 init()
