@@ -6,7 +6,15 @@ local Workspace = game:GetService("Workspace")
 local player = Players.LocalPlayer
 
 -- Папка с локациями
-local locationsFolder = Workspace:WaitForChild("Locations", 15)
+local locationsFolder = Workspace:WaitForChild("Locations", 30)
+if not locationsFolder then
+	task.spawn(function()
+		while not locationsFolder do
+			task.wait(0.5)
+			locationsFolder = Workspace:FindFirstChild("Locations")
+		end
+	end)
+end
 
 -- Вспомогательная функция для плавного управления барьером (открытие/закрытие)
 local function updateBarrierState(zoneName: string, isUnlocked: boolean)
@@ -55,12 +63,19 @@ end
 -- Инициализация контроллера
 local function init()
 	if not locationsFolder then
-		warn("[LOCATION CLIENT] Не найдена папка локаций в Workspace!")
-		return
+		-- Ждем появление папки в фоновом режиме, чтобы не спамить ворнингами
+		task.spawn(function()
+			while not locationsFolder do
+				task.wait(0.5)
+				locationsFolder = Workspace:FindFirstChild("Locations")
+			end
+			setupLocationListeners()
+			print("[LOCATION CLIENT] Контроллер барьеров успешно запущен!")
+		end)
+	else
+		setupLocationListeners()
+		print("[LOCATION CLIENT] Контроллер барьеров успешно запущен!")
 	end
-	
-	setupLocationListeners()
-	print("[LOCATION CLIENT] Контроллер барьеров успешно запущен!")
 end
 
 init()

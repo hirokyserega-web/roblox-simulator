@@ -127,11 +127,13 @@ local function init()
 		localGhostsFolder.Parent = Workspace
 	end
 
-	-- Находим персональную папку логических призраков игрока
-	myGhostsFolder = playerGhostsFolder:WaitForChild(tostring(player.UserId), 15)
+	-- Находим персональную папку логических призраков игрока (надежное бесконфликтное ожидание)
+	myGhostsFolder = playerGhostsFolder:WaitForChild(tostring(player.UserId), 30)
 	if not myGhostsFolder then
-		warn("[GHOST RENDERER] Не найдена папка логических призраков игрока!")
-		return
+		while not myGhostsFolder do
+			task.wait(0.5)
+			myGhostsFolder = playerGhostsFolder:FindFirstChild(tostring(player.UserId))
+		end
 	end
 
 	-- Слушаем новые сущности призраков
