@@ -46,6 +46,7 @@ local function Button(props)
 			Position = UDim2.new(0, 0, 0, buttonDepth),
 			BackgroundColor3 = Theme.Colors.Stroke,
 			BorderSizePixel = 0,
+			ZIndex = 1, -- Force shadow underneath
 		}, {
 			Corner = React.createElement("UICorner", {
 				CornerRadius = Theme.Sizes.CornerButton,
@@ -64,6 +65,7 @@ local function Button(props)
 			TextScaled = textScale,
 			TextColor3 = Theme.Colors.Text,
 			BorderSizePixel = 0,
+			ZIndex = 2, -- Force face on top of shadow
 
 			[React.Event.MouseButton1Down] = function()
 				if not enabled then return end
@@ -104,4 +106,3 @@ local function Button(props)
 end
 
 return Button
-

@@ -10,16 +10,31 @@ local SpookWidget = require(script.Parent.SpookWidget)
 local CaptureBar = require(script.Parent.CaptureBar)
 
 local function HUD(props)
-	local openWindow = props.openWindow
-	local money = props.money or 100000
-	local crystals = props.crystals or 500
-	local bagCount = props.bagCount or 7
-	local bagMax = props.bagMax or 10
-	local captureProgress = props.captureProgress or 0.75
-	local capturing = props.capturing or false -- Let it toggle capture overlay
+	-- Bind correct capitalized property passed from App.luau
+	local openWindow = props.OpenWindow
+	
+	-- Bind correct nested PlayerStats table
+	local playerStats = props.PlayerStats or {}
+	local money = playerStats.Money or 100000
+	local crystals = playerStats.Crystals or 500
+	local bagCount = playerStats.BagCount or 7
+	local bagMax = playerStats.BagMax or 10
 
-	-- If not actively capturing in game, let's still render it during initial startup/test to match the mock-up!
-	local showCapture = capturing or (bagCount == 7 and bagMax == 10)
+	-- Bind correct nested DetectorStats table
+	local detectorStats = props.DetectorStats or {}
+	local signal = detectorStats.Signal or 0
+	local rarity = detectorStats.Rarity or "NONE"
+
+	-- Bind correct nested CaptureStats table
+	local captureStats = props.CaptureStats or {}
+	local captureVisible = captureStats.Visible or false
+	local captureGhostName = captureStats.GhostName or "Spook"
+	local captureGhostRarity = captureStats.GhostRarity or "Common"
+	local captureProgress = captureStats.Progress or 0.75
+	local captureShakeTrigger = captureStats.ShakeTrigger or 0
+
+	-- Display capture bar when actively capturing OR when backpack matches exactly 7/10 for the mockup representation
+	local showCapture = captureVisible or (bagCount == 7 and bagMax == 10)
 
 	return React.createElement("Frame", {
 		Name = "HUD",
@@ -203,6 +218,7 @@ local function HUD(props)
 		CaptureProgressOverlay = React.createElement(CaptureBar, {
 			Visible = showCapture,
 			Progress = captureProgress,
+			GhostName = captureGhostName,
 		})
 	})
 end
