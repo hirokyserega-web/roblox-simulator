@@ -77,9 +77,9 @@ local function DailyRewardsWindow(props)
 				Size = UDim2.new(1, 0, 0, 20),
 				Position = UDim2.new(0, 0, 1, -22),
 				BackgroundTransparency = 1,
-				Text = if isClaimed then "CLAIMED ✅" else (isCurrent then "READY ⭐" else "LOCKED 🔒"),
+				Text = if isClaimed then "CLAIMED ✅" else if isCurrent then "READY ⭐" else "LOCKED 🔒",
 				Font = Theme.Fonts.Main,
-				TextColor3 = if isClaimed then Color3.fromRGB(0, 210, 80) else (isCurrent then Color3.fromRGB(255, 179, 0) else Theme.Colors.TextSecondary),
+				TextColor3 = if isClaimed then Color3.fromRGB(0, 210, 80) else if isCurrent then Color3.fromRGB(255, 179, 0) else Theme.Colors.TextSecondary,
 				TextSize = 10,
 			})
 		})

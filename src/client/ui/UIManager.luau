@@ -5,7 +5,7 @@ local Players = game:GetService("Players")
 local React = require(ReplicatedStorage.Packages.React)
 local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
 
-local App = require(script.Parent.App)
+-- local App = require(script.Parent.App)
 
 local UIManager = {}
 UIManager._openWindowCallback = nil
@@ -47,7 +47,7 @@ local function init()
 	screenGui.Parent = pg
 
 	local root = ReactRoblox.createRoot(screenGui)
-	root:render(React.createElement(App))
+	local App = require(script.Parent.App); root:render(React.createElement(App))
 
 	_G.UIManager = UIManager
 end
