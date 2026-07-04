@@ -10,45 +10,34 @@ local SpookWidget = require(script.Parent.SpookWidget)
 local CaptureBar = require(script.Parent.CaptureBar)
 
 local function HUD(props)
-	-- Bind correct capitalized property passed from App.luau
 	local openWindow = props.OpenWindow
 	
-	-- Bind correct nested PlayerStats table
 	local playerStats = props.PlayerStats or {}
-	local money = playerStats.Money or 100000
-	local crystals = playerStats.Crystals or 500
-	local bagCount = playerStats.BagCount or 7
+	local money = playerStats.Money or 0
+	local crystals = playerStats.Crystals or 0
+	local bagCount = playerStats.BagCount or 0
 	local bagMax = playerStats.BagMax or 10
 
-	-- Bind correct nested DetectorStats table
 	local detectorStats = props.DetectorStats or {}
 	local signal = detectorStats.Signal or 0
 	local rarity = detectorStats.Rarity or "NONE"
 
-	-- Bind correct nested CaptureStats table
 	local captureStats = props.CaptureStats or {}
 	local captureVisible = captureStats.Visible or false
-	local captureGhostName = captureStats.GhostName or "Spook"
-	local captureGhostRarity = captureStats.GhostRarity or "Common"
-	local captureProgress = captureStats.Progress or 0.75
-	local captureShakeTrigger = captureStats.ShakeTrigger or 0
-
-	-- Display capture bar when actively capturing OR when backpack matches exactly 7/10 for the mockup representation
-	local showCapture = captureVisible or (bagCount == 7 and bagMax == 10)
+	local captureGhostName = captureStats.GhostName or "GHOST"
+	local captureProgress = captureStats.Progress or 0
 
 	return React.createElement("Frame", {
 		Name = "HUD",
 		Size = UDim2.new(1, 0, 1, 0),
 		BackgroundTransparency = 1,
 	}, {
-		-- ================= UPPER LEFT SECTION =================
 		UpperLeftGroup = React.createElement("Frame", {
 			Name = "UpperLeftGroup",
 			Position = UDim2.new(0, 20, 0, 20),
 			Size = UDim2.new(0, 400, 0, 130),
 			BackgroundTransparency = 1,
 		}, {
-			-- Currency pill (formatted with commas and showing "+500")
 			MoneyChip = React.createElement(CurrencyChip, {
 				CurrencyType = "Money",
 				Value = money,
@@ -56,7 +45,6 @@ local function HUD(props)
 				Position = UDim2.new(0, 0, 0, 0),
 			}),
 
-			-- Purple Neon Rebirth Button with lightning bolt
 			RebirthButton = React.createElement("Frame", {
 				Name = "RebirthButtonContainer",
 				Position = UDim2.new(0, 232, 0, 0),
@@ -65,7 +53,7 @@ local function HUD(props)
 			}, {
 				Button = React.createElement(Button, {
 					Text = "⚡ REBIRTH",
-					BaseColor = Theme.Colors.Accent, -- Glowing Neon Purple
+					BaseColor = Theme.Colors.Accent,
 					Size = UDim2.new(1, 0, 1, 0),
 					OnClick = function()
 						if openWindow then openWindow("Rebirth") end
@@ -73,7 +61,6 @@ local function HUD(props)
 				})
 			}),
 
-			-- SIGNAL: STRONG Neon Green Panel
 			SignalPanel = React.createElement(DetectorWidget, {
 				Position = UDim2.new(0, 0, 0, 58),
 				Signal = signal,
@@ -81,17 +68,15 @@ local function HUD(props)
 			})
 		}),
 
-		-- ================= UPPER RIGHT SECTION =================
 		UpperRightGroup = React.createElement("Frame", {
 			Name = "UpperRightGroup",
 			Position = UDim2.new(1, -70, 0, 20),
 			Size = UDim2.new(0, 50, 0, 50),
 			BackgroundTransparency = 1,
 		}, {
-			-- Yellow-Orange Gear Button for Settings
 			SettingsButton = React.createElement(Button, {
 				Text = "⚙️",
-				BaseColor = Color3.fromRGB(255, 140, 0), -- Warm Orange-Yellow
+				BaseColor = Color3.fromRGB(255, 140, 0),
 				Size = UDim2.new(1, 0, 1, 0),
 				OnClick = function()
 					if openWindow then openWindow("Settings") end
@@ -99,20 +84,17 @@ local function HUD(props)
 			})
 		}),
 
-		-- ================= RIGHT SIDE INVENTORY PANELS =================
 		RightInventoryGroup = React.createElement("Frame", {
 			Name = "RightInventoryGroup",
 			Position = UDim2.new(1, -190, 0.25, 0),
 			Size = UDim2.new(0, 170, 0, 250),
 			BackgroundTransparency = 1,
 		}, {
-			-- Spook (x3) Panel
 			SpookPanel = React.createElement(SpookWidget, {
 				Position = UDim2.new(0, 0, 0, 0),
-				Count = 3,
+				Count = bagCount, -- Real count
 			}),
 
-			-- Backpack 7/10 Panel with FULL! SELL text
 			BackpackPanel = React.createElement(BagWidget, {
 				Position = UDim2.new(0, 0, 0, 125),
 				Count = bagCount,
@@ -120,7 +102,6 @@ local function HUD(props)
 			})
 		}),
 
-		-- ================= LOWER-LEFT LOBBY BUTTONS (DOCK) =================
 		LowerLeftDock = React.createElement("Frame", {
 			Name = "LowerLeftDock",
 			Position = UDim2.new(0, 20, 1, -110),
@@ -134,7 +115,6 @@ local function HUD(props)
 				Padding = UDim.new(0, 14),
 			}),
 
-			-- Orange Cart Button (Shop)
 			CartButton = React.createElement("Frame", {
 				Name = "CartButtonContainer",
 				Size = UDim2.new(0, 68, 0, 68),
@@ -142,7 +122,7 @@ local function HUD(props)
 			}, {
 				Button = React.createElement(Button, {
 					Text = "🛒",
-					BaseColor = Color3.fromRGB(255, 120, 0), -- Toy Orange
+					BaseColor = Color3.fromRGB(255, 120, 0),
 					Size = UDim2.new(1, 0, 1, 0),
 					OnClick = function()
 						if openWindow then openWindow("Shop") end
@@ -150,7 +130,6 @@ local function HUD(props)
 				})
 			}),
 
-			-- Yellow Trophy Button (Leaderboard)
 			TrophyButton = React.createElement("Frame", {
 				Name = "TrophyButtonContainer",
 				Size = UDim2.new(0, 68, 0, 68),
@@ -158,7 +137,7 @@ local function HUD(props)
 			}, {
 				Button = React.createElement(Button, {
 					Text = "🏆",
-					BaseColor = Color3.fromRGB(255, 200, 0), -- Toy Yellow
+					BaseColor = Color3.fromRGB(255, 200, 0),
 					Size = UDim2.new(1, 0, 1, 0),
 					OnClick = function()
 						if openWindow then openWindow("Leaderboard") end
@@ -166,7 +145,6 @@ local function HUD(props)
 				})
 			}),
 
-			-- Purple Monster Button (Pets)
 			MonsterButton = React.createElement("Frame", {
 				Name = "MonsterButtonContainer",
 				Size = UDim2.new(0, 68, 0, 68),
@@ -174,7 +152,7 @@ local function HUD(props)
 			}, {
 				Button = React.createElement(Button, {
 					Text = "👾",
-					BaseColor = Color3.fromRGB(160, 50, 255), -- Toy Purple
+					BaseColor = Color3.fromRGB(160, 50, 255),
 					Size = UDim2.new(1, 0, 1, 0),
 					OnClick = function()
 						if openWindow then openWindow("Pets") end
@@ -182,7 +160,6 @@ local function HUD(props)
 				})
 			}),
 
-			-- Green Gift Button with Red Notification Dot (Rewards)
 			GiftButton = React.createElement("Frame", {
 				Name = "GiftButtonContainer",
 				Size = UDim2.new(0, 68, 0, 68),
@@ -190,13 +167,12 @@ local function HUD(props)
 			}, {
 				Button = React.createElement(Button, {
 					Text = "🎁",
-					BaseColor = Color3.fromRGB(0, 210, 80), -- Toy Green
+					BaseColor = Color3.fromRGB(0, 210, 80),
 					Size = UDim2.new(1, 0, 1, 0),
 					OnClick = function()
 						if openWindow then openWindow("Rewards") end
 					end,
 				}),
-				-- Glowing Red Dot Notification
 				NotificationDot = React.createElement("Frame", {
 					Name = "NotificationDot",
 					Size = UDim2.new(0, 18, 0, 18),
@@ -204,6 +180,7 @@ local function HUD(props)
 					BackgroundColor3 = Color3.fromRGB(255, 0, 50),
 					BorderSizePixel = 0,
 					ZIndex = 5,
+					Visible = false, -- Only show when actual rewards available
 				}, {
 					Corner = React.createElement("UICorner", {
 						CornerRadius = UDim.new(0.5, 0),
@@ -216,9 +193,8 @@ local function HUD(props)
 			})
 		}),
 
-		-- ================= CENTRAL BOTTOM CAPTURE BAR =================
 		CaptureProgressOverlay = React.createElement(CaptureBar, {
-			Visible = showCapture,
+			Visible = captureVisible,
 			Progress = captureProgress,
 			GhostName = captureGhostName,
 		})

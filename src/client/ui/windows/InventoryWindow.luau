@@ -6,22 +6,18 @@ local Theme = require(script.Parent.Parent.theme.Theme)
 local Panel = require(script.Parent.Parent.components.Panel)
 local Button = require(script.Parent.Parent.components.Button)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local GhostConfig = require(ReplicatedStorage.Shared.config.GhostConfig)
 
 local function InventoryWindow(props)
 	local visible = props.Visible
 	local onClose = props.OnClose
-
-	-- Mock ghost inventories representing current mockup setup (Spook x3)
-	local ghosts = {
-		{ Id = "G1", Name = "Green Spook", Rarity = "Uncommon", Icon = "👻" },
-		{ Id = "G2", Name = "White Spook", Rarity = "Common", Icon = "👻" },
-		{ Id = "G3", Name = "Blue Spook", Rarity = "Rare", Icon = "👻" },
-	}
+	local ghosts = props.Ghosts or {}
 
 	if not visible then return nil end
 
 	local function requestSell()
-		Remotes.getEvent("SellGhosts"):FireServer()
+		-- Using RequestSell as defined in SellService
+		Remotes.getEvent("RequestSell"):FireServer()
 		if onClose then onClose() end
 	end
 
@@ -34,10 +30,11 @@ local function InventoryWindow(props)
 		})
 	}
 
-	for _, g in ipairs(ghosts) do
-		local rarityColor = Theme.RarityColors[g.Rarity] or Theme.Colors.Text
+	for i, rarity in ipairs(ghosts) do
+		local config = GhostConfig[rarity] or GhostConfig.Common
+		local rarityColor = Theme.RarityColors[rarity] or Theme.Colors.Text
 
-		gridChildren[g.Id] = React.createElement("Frame", {
+		gridChildren["Ghost_" .. i] = React.createElement("Frame", {
 			Size = UDim2.new(0, 95, 0, 110),
 			BackgroundColor3 = Color3.fromHex("12142B"),
 			BorderSizePixel = 0,
@@ -50,33 +47,31 @@ local function InventoryWindow(props)
 				Thickness = 2,
 			}),
 
-			-- Title details
 			Label = React.createElement("TextLabel", {
 				Size = UDim2.new(1, 0, 0, 24),
 				Position = UDim2.new(0, 0, 0, 4),
 				BackgroundTransparency = 1,
-				Text = g.Name,
+				Text = config.Name,
 				Font = Theme.Fonts.Main,
 				TextColor3 = rarityColor,
-				TextSize = 12,
+				TextSize = 10,
+				TextWrapped = true,
 			}),
 
-			-- Ghost Sprite Emoji
 			Emoji = React.createElement("TextLabel", {
 				Size = UDim2.new(1, 0, 0, 44),
 				Position = UDim2.new(0, 0, 0, 26),
 				BackgroundTransparency = 1,
-				Text = g.Icon,
+				Text = "👻",
 				TextSize = 28,
 				Font = Theme.Fonts.Main,
 			}),
 
-			-- Rarity label below
 			RarityText = React.createElement("TextLabel", {
 				Size = UDim2.new(1, 0, 0, 20),
 				Position = UDim2.new(0, 0, 1, -22),
 				BackgroundTransparency = 1,
-				Text = g.Rarity:upper(),
+				Text = rarity:upper(),
 				Font = Theme.Fonts.Main,
 				TextColor3 = Theme.Colors.TextSecondary,
 				TextSize = 9,
@@ -89,7 +84,6 @@ local function InventoryWindow(props)
 		Size = UDim2.new(0, 480, 0, 360),
 		OnClose = onClose,
 	}, {
-		-- Scrolling grid container holding the list of ghosts
 		GridScroll = React.createElement("ScrollingFrame", {
 			Size = UDim2.new(1, 0, 0.72, 0),
 			BackgroundTransparency = 1,
@@ -98,15 +92,15 @@ local function InventoryWindow(props)
 			ScrollBarImageColor3 = Theme.Colors.Stroke,
 		}, gridChildren),
 
-		-- Sell Button Row
 		SellBtnRow = React.createElement("Frame", {
 			Size = UDim2.new(1, -20, 0, 52),
 			Position = UDim2.new(0, 10, 1, -62),
 			BackgroundTransparency = 1,
 		}, {
 			Button = React.createElement(Button, {
-				Text = "💰 SELL ALL CAPTURED GHOSTS",
-				Color = Theme.Colors.Success,
+				Text = #ghosts > 0 and "💰 SELL ALL CAPTURED GHOSTS" or "INVENTORY EMPTY",
+				Color = #ghosts > 0 and Theme.Colors.Success or Theme.Colors.Error,
+				Disabled = #ghosts == 0,
 				Size = UDim2.new(1, 0, 1, 0),
 				OnClick = requestSell,
 			})

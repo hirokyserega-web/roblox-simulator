@@ -1,12 +1,15 @@
-local LocationConfig = require(ReplicatedStorage.Shared.config.LocationConfig)
 -- Candy Teleport Window (React version)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
 local React = require(ReplicatedStorage.Packages.React)
 local Theme = require(script.Parent.Parent.theme.Theme)
 local Panel = require(script.Parent.Parent.components.Panel)
 local Button = require(script.Parent.Parent.components.Button)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local LocationConfig = require(ReplicatedStorage.Shared.config.LocationConfig)
+
+local player = Players.LocalPlayer
 
 local function TeleportWindow(props)
 	local visible = props.Visible
@@ -38,7 +41,7 @@ local function TeleportWindow(props)
 		local desc = w.Unlocked and "Fully Unlocked & Free" or string.format("Unlocks at $%d", w.Cost)
 		local btnText = w.Unlocked and "TELEPORT 🌀" or "LOCKED 🔒"
 		local btnColor = w.Unlocked and Theme.Colors.Success or Theme.Colors.Error
-
+	
 		worldCards[w.Id] = React.createElement("Frame", {
 			Size = UDim2.new(1, -20, 0, 68),
 			BackgroundColor3 = Color3.fromHex("12142B"),
