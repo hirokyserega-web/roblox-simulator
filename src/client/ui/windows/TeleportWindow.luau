@@ -1,178 +1,124 @@
--- TeleportWindow (React version)
+-- Candy Teleport Window (React version)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
 local Theme = require(script.Parent.Parent.theme.Theme)
 local Panel = require(script.Parent.Parent.components.Panel)
 local Button = require(script.Parent.Parent.components.Button)
-local LocationConfig = require(ReplicatedStorage.Shared.config.LocationConfig)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
-local UIManager = {
-	ShowToast = function(...)
-		if _G.UIManager then
-			_G.UIManager.ShowToast(...)
-		end
-	end,
-	openWindow = function(...)
-		if _G.UIManager then
-			_G.UIManager.openWindow(...)
-		end
-	end,
-}
-
-
-local teleportRequest = Remotes.getEvent("TeleportRequest")
-local buyZoneRequest = Remotes.getEvent("BuyZoneRequest")
-
-local function formatNumber(value: number): string
-	local formatted = tostring(value)
-	while true do  
-		local k
-		formatted, k = string.gsub(formatted, "^(-?%d+)(%d%d%d)", '%1,%2')
-		if k == 0 then
-			break
-		end
-	end
-	return formatted
-end
 
 local function TeleportWindow(props)
 	local visible = props.Visible
 	local onClose = props.OnClose
-	local money = props.Money or 0
-
-	local player = Players.LocalPlayer
-
-	local unlocked, setUnlocked = React.useState(function()
-		local initial = {}
-		for zoneId, _ in pairs(LocationConfig) do
-			initial[zoneId] = (zoneId == "StarterArea") or (player:GetAttribute("Unlocked_" .. zoneId) == true)
-		end
-		return initial
-	end)
-
-	React.useEffect(function()
-		local connections = {}
-		for zoneId, _ in pairs(LocationConfig) do
-			if zoneId ~= "StarterArea" then
-				local conn = player:GetAttributeChangedSignal("Unlocked_" .. zoneId):Connect(function()
-					setUnlocked(function(current)
-						local copy = table.clone(current)
-						copy[zoneId] = player:GetAttribute("Unlocked_" .. zoneId) == true
-						return copy
-					end)
-				end)
-				table.insert(connections, conn)
-			end
-		end
-
-		return function()
-			for _, conn in ipairs(connections) do
-				conn:Disconnect()
-			end
-		end
-	end, {})
 
 	if not visible then return nil end
 
-	local sortedZones = {}
-	for zoneId, config in pairs(LocationConfig) do
-		table.insert(sortedZones, { Id = zoneId, Cost = config.Cost, Name = config.DisplayName })
-	end
-	table.sort(sortedZones, function(a, b) return a.Cost < b.Cost end)
+	local worlds = {
+		{ Id = "Cemetery", Name = "Night Cemetery 🌲", Unlocked = true },
+		{ Id = "Castle", Name = "Dracula Castle 🏰", Unlocked = false, Cost = 5000 },
+		{ Id = "Graveyard", Name = "Haunted Swamps 👻", Unlocked = false, Cost = 25000 },
+	}
 
-	local rows = {
-		ListLayout = React.createElement("UIListLayout", {
-			Padding = UDim.new(0, 10),
+	local worldCards = {
+		Layout = React.createElement("UIListLayout", {
+			FillDirection = Enum.FillDirection.Vertical,
 			HorizontalAlignment = Enum.HorizontalAlignment.Center,
+			VerticalAlignment = Enum.VerticalAlignment.Top,
+			Padding = UDim.new(0, 12),
 		})
 	}
 
-	for _, item in ipairs(sortedZones) do
-		local zoneId = item.Id
-		local isUnlocked = unlocked[zoneId]
-		local cost = item.Cost
-		local canAfford = money >= cost
+	for _, w in ipairs(worlds) do
+		local desc = w.Unlocked and "Fully Unlocked & Free" or string.format("Unlocks at $%d", w.Cost)
+		local btnText = w.Unlocked and "TELEPORT 🌀" or "LOCKED 🔒"
+		local btnColor = w.Unlocked and Theme.Colors.Success or Theme.Colors.Error
 
-		local statusText = isUnlocked and "РАЗБЛОКИРОВАНО" or string.format("Цена: $%s", formatNumber(cost))
-		local statusColor = isUnlocked and Theme.Colors.Success or Theme.Colors.Warning
-
-		local actionText = isUnlocked and "ТЕЛЕПОРТ" or "КУПИТЬ"
-		local actionColor = isUnlocked and Theme.Colors.Success or (canAfford and Theme.Colors.Accent or Theme.Colors.Error)
-
-		rows["Zone_" .. zoneId] = React.createElement("Frame", {
-			Size = UDim2.new(1, -12, 0, 56),
-			BackgroundColor3 = Theme.Colors.BackgroundSecondary,
+		worldCards[w.Id] = React.createElement("Frame", {
+			Size = UDim2.new(1, -20, 0, 68),
+			BackgroundColor3 = Color3.fromHex("12142B"),
 			BorderSizePixel = 0,
 		}, {
 			Corner = React.createElement("UICorner", {
-				CornerRadius = Theme.Sizes.CornerRadius,
+				CornerRadius = Theme.Sizes.CornerButton,
 			}),
 			Stroke = React.createElement("UIStroke", {
-				Thickness = 1,
 				Color = Theme.Colors.Stroke,
+				Thickness = 2.5,
 			}),
 
-			NameLabel = React.createElement("TextLabel", {
-				Size = UDim2.new(0, 160, 0, 22),
-				Position = UDim2.new(0, 12, 0, 6),
+			-- Left description details
+			LabelContainer = React.createElement("Frame", {
+				Size = UDim2.new(0.6, 0, 1, 0),
+				Position = UDim2.new(0, 15, 0, 0),
 				BackgroundTransparency = 1,
-				Font = Theme.Fonts.Title,
-				TextSize = 13,
-				TextColor3 = Theme.Colors.Text,
-				TextXAlignment = Enum.TextXAlignment.Left,
-				Text = item.Name,
+			}, {
+				Layout = React.createElement("UIListLayout", {
+					FillDirection = Enum.FillDirection.Vertical,
+					VerticalAlignment = Enum.VerticalAlignment.Center,
+					Padding = UDim.new(0, 4),
+				}),
+
+				Title = React.createElement("TextLabel", {
+					Size = UDim2.new(1, 0, 0, 22),
+					BackgroundTransparency = 1,
+					Text = w.Name,
+					Font = Theme.Fonts.Main,
+					TextColor3 = Theme.Colors.Text,
+					TextSize = 18,
+					TextXAlignment = Enum.TextXAlignment.Left,
+				}, {
+					Shadow = React.createElement("UIStroke", {
+						Color = Color3.fromRGB(0, 0, 0),
+						Thickness = 1.2,
+					})
+				}),
+
+				Sub = React.createElement("TextLabel", {
+					Size = UDim2.new(1, 0, 0, 16),
+					BackgroundTransparency = 1,
+					Text = desc,
+					Font = Theme.Fonts.Main,
+					TextColor3 = Theme.Colors.TextSecondary,
+					TextSize = 13,
+					TextXAlignment = Enum.TextXAlignment.Left,
+				})
 			}),
 
-			StatusLabel = React.createElement("TextLabel", {
-				Size = UDim2.new(0, 160, 0, 20),
-				Position = UDim2.new(0, 12, 1, -24),
+			-- Action Button on right
+			ActionButton = React.createElement("Frame", {
+				Size = UDim2.new(0.35, -10, 0, 44),
+				Position = UDim2.new(1, -15, 0.5, -22),
+				AnchorPoint = Vector2.new(1, 0.5),
 				BackgroundTransparency = 1,
-				Font = Theme.Fonts.Body,
-				TextSize = 11,
-				TextColor3 = statusColor,
-				TextXAlignment = Enum.TextXAlignment.Left,
-				Text = statusText,
-			}),
-
-			ActionButton = React.createElement(Button, {
-				Text = actionText,
-				Color = actionColor,
-				Size = UDim2.new(0, 100, 0, 36),
-				Position = UDim2.new(1, -110, 0.5, -18),
-				OnClick = function()
-					if isUnlocked then
-						teleportRequest:FireServer(zoneId)
-						if onClose then onClose() end
-					else
-						if canAfford then
-							buyZoneRequest:FireServer(zoneId)
-						else
-							UIManager.ShowToast("Не хватает монет для покупки этой зоны!", "Error")
+			}, {
+				Btn = React.createElement(Button, {
+					Text = btnText,
+					Color = btnColor,
+					Size = UDim2.new(1, 0, 1, 0),
+					OnClick = function()
+						if w.Unlocked then
+							Remotes.getEvent("TeleportRequest"):FireServer(w.Id)
+							if onClose then onClose() end
 						end
 					end
-				end
+				})
 			})
 		})
 	end
 
 	return React.createElement(Panel, {
-		Title = "ТЕЛЕПОРТАЦИЯ",
-		Size = UDim2.new(0, 380, 0, 300),
-		Position = UDim2.new(0.5, 0, 0.5, 0),
-		Visible = true,
+		Title = "WORLD PORTALS",
+		Size = UDim2.new(0, 460, 0, 350),
 		OnClose = onClose,
 	}, {
 		Scroll = React.createElement("ScrollingFrame", {
-			Size = UDim2.new(1, 0, 1, -10),
-			Position = UDim2.new(0, 0, 0, 5),
+			Size = UDim2.new(1, 0, 1, 0),
 			BackgroundTransparency = 1,
-			BorderSizePixel = 0,
+			CanvasSize = UDim2.new(0, 0, 0, 240),
 			ScrollBarThickness = 6,
-			CanvasSize = UDim2.new(0, 0, 0, #sortedZones * 66),
-		}, rows)
+			ScrollBarImageColor3 = Theme.Colors.Stroke,
+		}, worldCards)
 	})
 end
 
 return TeleportWindow
-

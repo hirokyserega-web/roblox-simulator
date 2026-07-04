@@ -39,15 +39,15 @@ local function ToastItem(props)
 		local toast = ref.current
 		if not toast then return end
 
-		-- Анимация появления
-		toast.Position = UDim2.new(0.5, 0, 0, -60)
-		local ti = TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-		local tIn = TweenService:Create(toast, ti, {Position = UDim2.new(0.5, 0, 0, 20)})
+		-- Smooth sliding spring-like entrance animation from top
+		toast.Position = UDim2.new(0.5, 0, 0, -80)
+		local ti = TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+		local tIn = TweenService:Create(toast, ti, {Position = UDim2.new(0.5, 0, 0, 24)})
 		tIn:Play()
 
-		-- Задержка перед исчезновением
-		local delayTask = task.delay(3, function()
-			local tOut = TweenService:Create(toast, ti, {Position = UDim2.new(0.5, 0, 0, -60)})
+		-- Fade out and slide back up
+		local delayTask = task.delay(3.5, function()
+			local tOut = TweenService:Create(toast, ti, {Position = UDim2.new(0.5, 0, 0, -80)})
 			tOut:Play()
 			local conn
 			conn = tOut.Completed:Connect(function()
@@ -69,33 +69,60 @@ local function ToastItem(props)
 	return React.createElement("Frame", {
 		Name = "ToastNotification",
 		ref = ref,
-		Size = UDim2.new(0, 300, 0, 50),
+		Size = UDim2.new(0, 320, 0, 60),
 		AnchorPoint = Vector2.new(0.5, 0),
-		BackgroundColor3 = Theme.Colors.Background,
+		BackgroundColor3 = Color3.fromHex("12142B"), -- Juicy dark backing
 		BorderSizePixel = 0,
-		ZIndex = 1000,
+		ZIndex = 500, -- Maximum ZIndex to sit on top of everything!
 	}, {
 		Corner = React.createElement("UICorner", {
-			CornerRadius = Theme.Sizes.CornerButton,
+			CornerRadius = Theme.Sizes.CornerRadius,
 		}),
 		Stroke = React.createElement("UIStroke", {
 			Color = color,
-			Thickness = Theme.Sizes.StrokeThickness,
+			Thickness = 3,
 		}),
+		
+		-- Cute Bell/Notif emoji
+		IconLabel = React.createElement("TextLabel", {
+			Size = UDim2.new(0, 36, 1, 0),
+			Position = UDim2.new(0, 12, 0, 0),
+			BackgroundTransparency = 1,
+			Text = "🔔",
+			TextSize = 22,
+			Font = Theme.Fonts.Main,
+			ZIndex = 501,
+		}),
+
+		-- Text message
 		Label = React.createElement("TextLabel", {
-			Size = UDim2.new(1, -20, 1, 0),
-			Position = UDim2.new(0.5, 0, 0, 0),
-			AnchorPoint = Vector2.new(0.5, 0),
+			Size = UDim2.new(1, -70, 1, 0),
+			Position = UDim2.new(0, 52, 0, 0),
 			BackgroundTransparency = 1,
 			Text = text,
 			Font = Theme.Fonts.Main,
 			TextColor3 = Theme.Colors.Text,
-			TextSize = 18,
+			TextSize = 16,
 			TextWrapped = true,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			ZIndex = 501,
 		}, {
 			Stroke = React.createElement("UIStroke", {
-				Color = Theme.Colors.Stroke,
-				Thickness = 1,
+				Color = Color3.fromRGB(0, 0, 0),
+				Thickness = 1.5,
+			})
+		}),
+
+		-- Dynamic gloss top sweep for that juicy plastic bubble highlight
+		GlossHighlight = React.createElement("Frame", {
+			Size = UDim2.new(1, 0, 0.5, 0),
+			BackgroundTransparency = 0.92,
+			BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+			BorderSizePixel = 0,
+			ZIndex = 502,
+		}, {
+			Corner = React.createElement("UICorner", {
+				CornerRadius = Theme.Sizes.CornerRadius,
 			})
 		})
 	})

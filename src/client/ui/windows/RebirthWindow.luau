@@ -1,39 +1,11 @@
--- RebirthWindow (React version)
+-- Candy Rebirth Window (React version)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
 local Theme = require(script.Parent.Parent.theme.Theme)
 local Panel = require(script.Parent.Parent.components.Panel)
 local Button = require(script.Parent.Parent.components.Button)
-local RebirthConfig = require(ReplicatedStorage.Shared.config.RebirthConfig)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
-local UIManager = {
-	ShowToast = function(...)
-		if _G.UIManager then
-			_G.UIManager.ShowToast(...)
-		end
-	end,
-	openWindow = function(...)
-		if _G.UIManager then
-			_G.UIManager.openWindow(...)
-		end
-	end,
-}
-
-
-local requestRebirthEvent = Remotes.getEvent("RequestRebirth")
-
-local function formatNumber(value: number): string
-	local formatted = tostring(value)
-	while true do  
-		local k
-		formatted, k = string.gsub(formatted, "^(-?%d+)(%d%d%d)", '%1,%2')
-		if k == 0 then
-			break
-		end
-	end
-	return formatted
-end
 
 local function RebirthWindow(props)
 	local visible = props.Visible
@@ -41,155 +13,100 @@ local function RebirthWindow(props)
 	local money = props.Money or 0
 	local rebirths = props.Rebirths or 0
 
-	local confirmOpen, setConfirmOpen = React.useState(false)
+	-- Scale cost based on current rebirth count
+	local cost = 100000 + (rebirths * 50000)
+	local canRebirth = money >= cost
 
 	if not visible then return nil end
 
-	local cost = RebirthConfig.getCost(rebirths)
-	local multiplier = 1.0 + (rebirths * RebirthConfig.MultiplierPerRebirth)
-	local canAfford = money >= cost
+	local function requestRebirth()
+		if canRebirth then
+			Remotes.getEvent("RequestRebirth"):FireServer()
+		end
+	end
 
-	return React.createElement("Frame", {
-		Name = "RebirthWindowContainer",
-		Size = UDim2.new(1, 0, 1, 0),
-		BackgroundTransparency = 1,
-		ZIndex = props.ZIndex or 15,
+	return React.createElement(Panel, {
+		Title = "REBIRTH SYSTEM",
+		Size = UDim2.new(0, 450, 0, 340),
+		OnClose = onClose,
 	}, {
-		MainPanel = React.createElement(Panel, {
-			Title = "ПЕРЕРОЖДЕНИЯ",
-			Size = UDim2.new(0, 380, 0, 310),
-			Position = UDim2.new(0.5, 0, 0.5, 0),
-			Visible = true,
-			OnClose = onClose,
+		Layout = React.createElement("UIListLayout", {
+			FillDirection = Enum.FillDirection.Vertical,
+			HorizontalAlignment = Enum.HorizontalAlignment.Center,
+			VerticalAlignment = Enum.VerticalAlignment.Center,
+			Padding = UDim.new(0, 16),
+		}),
+
+		-- Rebirth Title info
+		TitleLabel = React.createElement("TextLabel", {
+			Size = UDim2.new(1, -20, 0, 36),
+			BackgroundTransparency = 1,
+			Text = "RESET STATS FOR PERMANENT MULTIPLIERS!",
+			Font = Theme.Fonts.Main,
+			TextColor3 = Color3.fromHex("00B0FF"), -- Neon blue
+			TextSize = 16,
+			TextWrapped = true,
 		}, {
-			Container = React.createElement("Frame", {
-				Size = UDim2.new(1, -20, 1, -20),
-				Position = UDim2.new(0, 10, 0, 10),
-				BackgroundTransparency = 1,
-			}, {
-				ListLayout = React.createElement("UIListLayout", {
-					Padding = UDim.new(0, 10),
-					HorizontalAlignment = Enum.HorizontalAlignment.Center,
-				}),
-
-				Description = React.createElement("TextLabel", {
-					Size = UDim2.new(1, -20, 0, 45),
-					BackgroundTransparency = 1,
-					Font = Theme.Fonts.Title,
-					TextSize = 12,
-					TextColor3 = Theme.Colors.TextSecondary,
-					TextWrapped = true,
-					Text = "Сбросьте монеты и улучшения, чтобы получить колоссальный постоянный множитель монет!",
-				}),
-
-				StatsBox = React.createElement("Frame", {
-					Size = UDim2.new(1, -20, 0, 120),
-					BackgroundColor3 = Theme.Colors.BackgroundSecondary,
-					BorderSizePixel = 0,
-				}, {
-					Corner = React.createElement("UICorner", {
-						CornerRadius = Theme.Sizes.CornerRadius,
-					}),
-					Stroke = React.createElement("UIStroke", {
-						Thickness = Theme.Sizes.BorderWidth or 2,
-						Color = Theme.Colors.Stroke,
-					}),
-
-					RebirthsLabel = React.createElement("TextLabel", {
-						Size = UDim2.new(1, -30, 0, 30),
-						Position = UDim2.new(0, 15, 0, 12),
-						BackgroundTransparency = 1,
-						Font = Theme.Fonts.Title,
-						TextSize = 13,
-						TextColor3 = Theme.Colors.Text,
-						TextXAlignment = Enum.TextXAlignment.Left,
-						Text = string.format("🔄 ТЕКУЩИЕ ПЕРЕРОЖДЕНИЯ: %d", rebirths),
-					}),
-
-					MultiplierLabel = React.createElement("TextLabel", {
-						Size = UDim2.new(1, -30, 0, 30),
-						Position = UDim2.new(0, 15, 0, 44),
-						BackgroundTransparency = 1,
-						Font = Theme.Fonts.Title,
-						TextSize = 13,
-						TextColor3 = Theme.Colors.Success,
-						TextXAlignment = Enum.TextXAlignment.Left,
-						Text = string.format("✨ МНОЖИТЕЛЬ МОНЕТ: x%.1f", multiplier),
-					}),
-
-					CostLabel = React.createElement("TextLabel", {
-						Size = UDim2.new(1, -30, 0, 30),
-						Position = UDim2.new(0, 15, 0, 76),
-						BackgroundTransparency = 1,
-						Font = Theme.Fonts.Title,
-						TextSize = 13,
-						TextColor3 = Theme.Colors.Warning,
-						TextXAlignment = Enum.TextXAlignment.Left,
-						Text = string.format("💵 СТОИМОСТЬ: $%s", formatNumber(cost)),
-					}),
-				}),
-
-				ActionButton = React.createElement(Button, {
-					Text = "СОВЕРШИТЬ ПЕРЕРОЖДЕНИЕ",
-					Color = canAfford and Theme.Colors.Success or Theme.Colors.Error,
-					Size = UDim2.new(1, -40, 0, 48),
-					OnClick = function()
-						if canAfford then
-							setConfirmOpen(true)
-						else
-							UIManager.ShowToast(string.format("Недостаточно монет! Требуется: $%s", formatNumber(cost)), "Error")
-						end
-					end
-				})
+			Stroke = React.createElement("UIStroke", {
+				Color = Color3.fromRGB(0, 0, 0),
+				Thickness = 1.5,
 			})
 		}),
 
-		ConfirmModal = confirmOpen and React.createElement("Frame", {
-			Size = UDim2.new(0, 260, 0, 140),
-			Position = UDim2.new(0.5, -130, 0.5, -70),
-			BackgroundColor3 = Theme.Colors.Background,
-			ZIndex = 300,
+		-- Rebirth stats container
+		StatsFrame = React.createElement("Frame", {
+			Size = UDim2.new(1, -20, 0, 100),
+			BackgroundColor3 = Color3.fromHex("12142B"),
+			BorderSizePixel = 0,
 		}, {
 			Corner = React.createElement("UICorner", {
-				CornerRadius = Theme.Sizes.CornerRadius,
+				CornerRadius = Theme.Sizes.CornerButton,
 			}),
 			Stroke = React.createElement("UIStroke", {
-				Thickness = Theme.Sizes.BorderWidth or 2,
-				Color = Theme.Colors.Warning,
+				Color = Theme.Colors.Stroke,
+				Thickness = 2.5,
 			}),
-			TextLabel = React.createElement("TextLabel", {
-				Size = UDim2.new(1, -20, 0, 50),
-				Position = UDim2.new(0, 10, 0, 15),
+			Layout = React.createElement("UIListLayout", {
+				FillDirection = Enum.FillDirection.Vertical,
+				HorizontalAlignment = Enum.HorizontalAlignment.Center,
+				VerticalAlignment = Enum.VerticalAlignment.Center,
+				Padding = UDim.new(0, 10),
+			}),
+
+			ActiveMult = React.createElement("TextLabel", {
+				Size = UDim2.new(1, 0, 0, 24),
 				BackgroundTransparency = 1,
-				Font = Theme.Fonts.Title,
-				TextSize = 13,
+				Text = string.format("Current Multiplier: <font color='#00FF55'>x%.1f</font>", 1.0 + (rebirths * 0.5)),
+				RichText = true,
+				Font = Theme.Fonts.Main,
 				TextColor3 = Theme.Colors.Text,
-				TextWrapped = true,
-				Text = "ВНИМАНИЕ! Это сбросит ваши монеты и уровни улучшений!",
+				TextSize = 18,
 			}),
-			YesBtn = React.createElement(Button, {
-				Text = "ДА",
-				Color = Theme.Colors.Success,
-				Size = UDim2.new(0, 90, 0, 36),
-				Position = UDim2.new(0.1, 0, 0.6, 10),
-				OnClick = function()
-					requestRebirthEvent:FireServer()
-					setConfirmOpen(false)
-					if onClose then onClose() end
-				end
-			}),
-			NoBtn = React.createElement(Button, {
-				Text = "ОТМЕНА",
-				Color = Theme.Colors.Error,
-				Size = UDim2.new(0, 90, 0, 36),
-				Position = UDim2.new(0.55, 0, 0.6, 10),
-				OnClick = function()
-					setConfirmOpen(false)
-				end
+
+			CostText = React.createElement("TextLabel", {
+				Size = UDim2.new(1, 0, 0, 24),
+				BackgroundTransparency = 1,
+				Text = string.format("Required Money: <font color='#FF4B4B'>$%s</font> / $%s", tostring(cost), tostring(money)),
+				RichText = true,
+				Font = Theme.Fonts.Main,
+				TextColor3 = Theme.Colors.TextSecondary,
+				TextSize = 16,
 			})
-		}) or nil
+		}),
+
+		-- Trigger Action Row
+		ActionRow = React.createElement("Frame", {
+			Size = UDim2.new(1, -20, 0, 52),
+			BackgroundTransparency = 1,
+		}, {
+			Button = React.createElement(Button, {
+				Text = canRebirth and "⚡ REBIRTH NOW!" or "⚡ NOT ENOUGH CASH",
+				Color = canRebirth and Theme.Colors.Accent or Theme.Colors.Error,
+				Size = UDim2.new(1, 0, 1, 0),
+				OnClick = requestRebirth,
+			})
+		})
 	})
 end
 
 return RebirthWindow
-

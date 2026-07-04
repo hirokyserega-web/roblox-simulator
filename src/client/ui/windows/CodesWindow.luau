@@ -1,110 +1,104 @@
--- CodesWindow (React version)
+-- Candy Codes Window (React version)
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
 local Theme = require(script.Parent.Parent.theme.Theme)
 local Panel = require(script.Parent.Parent.components.Panel)
 local Button = require(script.Parent.Parent.components.Button)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
-local UIManager = {
-	ShowToast = function(...)
-		if _G.UIManager then
-			_G.UIManager.ShowToast(...)
-		end
-	end,
-	openWindow = function(...)
-		if _G.UIManager then
-			_G.UIManager.openWindow(...)
-		end
-	end,
-}
-
-
-local redeemCodeEvent = Remotes.getEvent("RedeemCode")
 
 local function CodesWindow(props)
 	local visible = props.Visible
 	local onClose = props.OnClose
 
-	local codeText, setCodeText = React.useState("")
+	local text, setText = React.useState("")
+	local status, setStatus = React.useState("Enter a code to claim awesome rewards!")
 
 	if not visible then return nil end
 
+	local function submitCode()
+		if text == "" then return end
+		Remotes.getEvent("RedeemCode"):FireServer(text)
+		setText("")
+		setStatus("Redeeming...")
+		
+		-- Custom temporary status feedback
+		task.delay(1.5, function()
+			setStatus("Code already redeemed or invalid!")
+		end)
+	end
+
 	return React.createElement(Panel, {
-		Title = "АКТИВАЦИЯ КОДОВ",
-		Size = UDim2.new(0, 380, 0, 240),
-		Position = UDim2.new(0.5, 0, 0.5, 0),
-		Visible = true,
+		Title = "PROMO CODES",
+		Size = UDim2.new(0, 440, 0, 320),
 		OnClose = onClose,
 	}, {
-		Container = React.createElement("Frame", {
-			Size = UDim2.new(1, -20, 1, -20),
-			Position = UDim2.new(0, 10, 0, 10),
+		Layout = React.createElement("UIListLayout", {
+			FillDirection = Enum.FillDirection.Vertical,
+			HorizontalAlignment = Enum.HorizontalAlignment.Center,
+			VerticalAlignment = Enum.VerticalAlignment.Center,
+			Padding = UDim.new(0, 16),
+		}),
+
+		StatusLabel = React.createElement("TextLabel", {
+			Size = UDim2.new(1, -20, 0, 40),
+			BackgroundTransparency = 1,
+			Text = status,
+			Font = Theme.Fonts.Main,
+			TextColor3 = Theme.Colors.TextSecondary,
+			TextSize = 16,
+			TextWrapped = true,
+		}, {
+			Stroke = React.createElement("UIStroke", {
+				Color = Color3.fromRGB(0, 0, 0),
+				Thickness = 1.2,
+			})
+		}),
+
+		-- TextBox Container Row
+		TextBoxRow = React.createElement("Frame", {
+			Size = UDim2.new(1, -20, 0, 52),
+			BackgroundColor3 = Color3.fromHex("12142B"),
+			BorderSizePixel = 0,
+		}, {
+			Corner = React.createElement("UICorner", {
+				CornerRadius = Theme.Sizes.CornerButton,
+			}),
+			Stroke = React.createElement("UIStroke", {
+				Color = Theme.Colors.Stroke,
+				Thickness = 2.5,
+			}),
+			Input = React.createElement("TextBox", {
+				Size = UDim2.new(1, -20, 1, 0),
+				Position = UDim2.new(0, 10, 0, 0),
+				BackgroundTransparency = 1,
+				Text = text,
+				PlaceholderText = "TYPE CODE HERE...",
+				PlaceholderColor3 = Color3.fromRGB(100, 110, 150),
+				TextColor3 = Theme.Colors.Text,
+				Font = Theme.Fonts.Main,
+				TextSize = 18,
+				ClearTextOnFocus = false,
+				
+				[React.Change.Text] = function(rbx)
+					setText(rbx.Text)
+				end,
+			})
+		}),
+
+		-- Submit Button Row
+		SubmitRow = React.createElement("Frame", {
+			Size = UDim2.new(1, -20, 0, 50),
 			BackgroundTransparency = 1,
 		}, {
-			ListLayout = React.createElement("UIListLayout", {
-				Padding = UDim.new(0, 14),
-				HorizontalAlignment = Enum.HorizontalAlignment.Center,
-				VerticalAlignment = Enum.VerticalAlignment.Center,
-			}),
-
-			InfoLabel = React.createElement("TextLabel", {
-				Size = UDim2.new(1, -20, 0, 36),
-				BackgroundTransparency = 1,
-				Font = Theme.Fonts.Title,
-				TextSize = 13,
-				TextColor3 = Theme.Colors.TextSecondary,
-				TextWrapped = true,
-				Text = "Введите секретный код группы или соцсетей, чтобы получить ценные бонусы!",
-			}),
-
-			TextBoxBg = React.createElement("Frame", {
-				Name = "TextBoxBg",
-				Size = UDim2.new(1, -20, 0, 44),
-				BackgroundColor3 = Theme.Colors.BackgroundSecondary,
-				BorderSizePixel = 0,
-			}, {
-				Corner = React.createElement("UICorner", {
-					CornerRadius = Theme.Sizes.CornerRadius,
-				}),
-				Stroke = React.createElement("UIStroke", {
-					Thickness = Theme.Sizes.BorderWidth or 2,
-					Color = Theme.Colors.Stroke,
-				}),
-
-				Input = React.createElement("TextBox", {
-					Size = UDim2.new(1, -20, 1, 0),
-					Position = UDim2.new(0, 10, 0, 0),
-					BackgroundTransparency = 1,
-					Font = Theme.Fonts.Title,
-					TextSize = 16,
-					TextColor3 = Theme.Colors.Neon or Color3.fromRGB(0, 229, 255),
-					PlaceholderColor3 = Color3.fromRGB(100, 100, 130),
-					PlaceholderText = "ВВЕДИТЕ КОД...",
-					Text = codeText,
-					ClearTextOnFocus = true,
-
-					[React.Change.Text] = function(rbx)
-						setCodeText(rbx.Text)
-					end
-				})
-			}),
-
-			SubmitBtn = React.createElement(Button, {
-				Text = "АКТИВИРОВАТЬ",
+			Button = React.createElement(Button, {
+				Text = "CLAIM REWARD 🎁",
 				Color = Theme.Colors.Success,
-				Size = UDim2.new(1, -20, 0, 46),
-				OnClick = function()
-					if codeText ~= "" then
-						redeemCodeEvent:FireServer(codeText)
-						setCodeText("")
-					else
-						UIManager.ShowToast("Сначала введите код!", "Error")
-					end
-				end
+				Size = UDim2.new(1, 0, 1, 0),
+				OnClick = submitCode,
 			})
 		})
 	})
 end
 
 return CodesWindow
-
